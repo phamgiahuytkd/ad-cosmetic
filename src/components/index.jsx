@@ -1,0 +1,11 @@
+export { default as Header } from './Header/Header';
+export { default as CreateCategory } from './Category/CreateCategory';
+export { default as UpdateCategory } from './Category/UpdateCategory';
+export { default as CreateBrand } from './Brand/CreateBrand';
+export { default as UpdateBrand } from './Brand/UpdateBrand';
+export { default as Sidebar } from './Sidebar/Sidebar';
+export { default as SidebarContent } from './Sidebar/SidebarContent';
+export { default as CreateProduct } from './Product/CreateProduct';
+export { default as UpdateProduct } from './Product/UpdateProduct';
+export { default as MyEditor } from './TinyMCE/MyEditor';
+export { default as ProductDetailModal } from './Modal/ProductDetailModal';
