@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Download,
   FileText,
@@ -12,12 +11,21 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../../service/api';
 import { getImageUrl } from '../../common/commonFunc';
-// import * as apis from "../../service"
+
+// Hàm chuyển đổi không dấu
+const removeDiacritics = (str) => {
+  return str
+    ? str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+    : '';
+};
 
 const Category = () => {
   const [loading, setLoading] = useState(true);
@@ -57,14 +65,20 @@ const Category = () => {
     setCurrentPage(1); // Reset to first page when filters change
   }, [searchTerm, statusFilter]);
 
-  const filteredCategories = categories.filter((category) => {
-    const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === '' ||
-      (statusFilter === 'true' && category.isActive) ||
-      (statusFilter === 'false' && !category.isActive);
-    return matchesSearch && matchesStatus;
-  });
+  const filteredCategories = useMemo(() => {
+    return categories.filter((category) => {
+      const matchesSearch =
+        removeDiacritics(category.name || '')
+          .toLowerCase()
+          .includes(removeDiacritics(searchTerm).toLowerCase()) ||
+        category.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        statusFilter === '' ||
+        (statusFilter === 'with_products' && (category.product_quantity || 0) > 0) ||
+        (statusFilter === 'no_products' && (category.product_quantity || 0) === 0);
+      return matchesSearch && matchesStatus;
+    });
+  }, [categories, searchTerm, statusFilter]);
 
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -73,38 +87,18 @@ const Category = () => {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedItems(categories.map((cat) => cat._id));
+      setSelectedItems(categories.map((cat) => cat.id));
     } else {
       setSelectedItems([]);
     }
   };
 
-  const handleSelectItem = (id) => {
-    setSelectedItems((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-    );
-  };
-
-  // const handleToggleActive = async (categoryId, currentStatus) => {
-  //   try {
-  //     const response = await apis.apiUpdateCategoryVisibility(categoryId, {
-  //       isActive: !currentStatus,
-  //     })
-
-  //     if (response.success) {
-  //       setCategories((prev) => prev.map((cat) => (cat._id === categoryId ? { ...cat, isActive: !cat.isActive } : cat)))
-  //     } else {
-  //       setError(response.msg || "Không thể cập nhật trạng thái danh mục")
-  //     }
-  //   } catch (error) {
-  //     console.error("Error toggling category status:", error)
-  //     setError("Lỗi khi thay đổi trạng thái danh mục")
-  //   }
-  // }
-
+  // Statistics
   const totalCategories = categories.length;
-  const activeCategories = categories.filter((cat) => cat.isActive).length;
-  const inactiveCategories = totalCategories - activeCategories;
+  const categoriesWithProducts = categories.filter((cat) => (cat.product_quantity || 0) > 0).length;
+  const categoriesWithoutProducts = categories.filter(
+    (cat) => (cat.product_quantity || 0) === 0,
+  ).length;
 
   if (loading) {
     return (
@@ -124,7 +118,7 @@ const Category = () => {
           <div className="text-center">
             <div className="text-red-500 mb-4">{error}</div>
             <button
-              // onClick={getAllCategory}
+              onClick={getAllCategory}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Thử lại
@@ -147,10 +141,6 @@ const Category = () => {
             <Plus className="w-4 h-4 mr-2" />
             THÊM DANH MỤC
           </Link>
-          <button className="px-4 py-2 text-sm bg-green-500 text-white rounded-sm hover:bg-green-600 flex items-center transition-colors cursor-pointer">
-            <FileSpreadsheet className="w-4 h-4 mr-2" />
-            THÊM DANH MỤC BẰNG EXCEL
-          </button>
           <Link
             to="/products/product-management"
             className="px-4 py-2 text-sm bg-orange-500 text-white rounded-sm hover:bg-orange-600 flex items-center transition-colors cursor-pointer"
@@ -168,7 +158,6 @@ const Category = () => {
             {isMobileMenuOpen ? <X className="w-4 h-4 mr-2" /> : <Menu className="w-4 h-4 mr-2" />}
             MENU
           </button>
-
           {isMobileMenuOpen && (
             <div className="mt-2 space-y-2 bg-white border border-gray-200 rounded-sm shadow-lg p-2">
               <Link
@@ -178,10 +167,6 @@ const Category = () => {
                 <Plus className="w-4 h-4 mr-2" />
                 THÊM DANH MỤC
               </Link>
-              <button className="w-full px-4 py-2 text-sm bg-green-500 text-white rounded-sm hover:bg-green-600 flex items-center justify-center transition-colors cursor-pointer">
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                THÊM DANH MỤC BẰNG EXCEL
-              </button>
               <Link
                 to="/products/product-management"
                 className="w-full px-4 py-2 text-sm bg-orange-500 text-white rounded-sm hover:bg-orange-600 flex items-center justify-center transition-colors cursor-pointer"
@@ -207,27 +192,25 @@ const Category = () => {
             </div>
           </div>
         </div>
-
         <div className="bg-green-50 border border-green-200 rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-600">Đang hoạt động</p>
-              <p className="text-2xl font-bold text-green-800">{activeCategories}</p>
+              <p className="text-sm font-medium text-green-600">Có sản phẩm</p>
+              <p className="text-2xl font-bold text-green-800">{categoriesWithProducts}</p>
             </div>
             <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-              <Eye className="w-4 h-4 text-white" />
+              <Package className="w-4 h-4 text-white" />
             </div>
           </div>
         </div>
-
         <div className="bg-red-50 border border-red-200 rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-red-600">Không hoạt động</p>
-              <p className="text-2xl font-bold text-red-800">{inactiveCategories}</p>
+              <p className="text-sm font-medium text-red-600">Không sản phẩm</p>
+              <p className="text-2xl font-bold text-red-800">{categoriesWithoutProducts}</p>
             </div>
             <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-              <EyeOff className="w-4 h-4 text-white" />
+              <Package className="w-4 h-4 text-white" />
             </div>
           </div>
         </div>
@@ -254,8 +237,12 @@ const Category = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="">Tất cả ({totalCategories})</option>
-              <option value="true">Hoạt động ({activeCategories})</option>
-              <option value="false">Không hoạt động ({inactiveCategories})</option>
+              <option value="with_products">
+                Có sản phẩm ({categories.filter((c) => (c.product_quantity || 0) > 0).length})
+              </option>
+              <option value="no_products">
+                Không sản phẩm ({categories.filter((c) => (c.product_quantity || 0) === 0).length})
+              </option>
             </select>
           </div>
         </div>
@@ -268,18 +255,6 @@ const Category = () => {
           <h2 className="text-base font-semibold">
             QUẢN LÝ DANH MỤC ({filteredCategories.length} mục)
           </h2>
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-            <button className="w-full sm:w-auto px-2 py-1 bg-white bg-opacity-90 rounded text-xs hover:bg-yellow-400 hover:text-white text-gray-700 font-medium flex items-center justify-center border border-white border-opacity-30 transition-all duration-200 cursor-pointer">
-              <Download className="w-3 h-3 mr-1" />
-              XUẤT EXCEL
-            </button>
-            <button
-              className="w-full sm:w-auto px-2 py-1 bg-red-500 rounded text-xs hover:bg-red-600 cursor-pointer disabled:opacity-50"
-              disabled={selectedItems.length === 0}
-            >
-              Xóa đã chọn ({selectedItems.length})
-            </button>
-          </div>
         </div>
 
         {/* Desktop Table */}
@@ -287,45 +262,26 @@ const Category = () => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    onChange={handleSelectAll}
-                    checked={selectedItems.length === categories.length && categories.length > 0}
-                    className="rounded border-gray-300"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">STT</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Hình ảnh</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">STT</th>
+                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Hình ảnh</th>
+                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">
                   Tên danh mục
                 </th>
-                {/* <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Cấp độ</th> */}
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                  Trạng thái
-                </th>
-                {/* <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Hoạt động</th> */}
+                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Số lượng SP</th>
+                <th className="px-6 py-3 text-right text-sm font-bold text-gray-700">Hoạt động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {currentCategories.map((category, index) => (
                 <tr key={category.id} className="hover:bg-gray-100">
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedItems.includes(category.id)}
-                      onChange={() => handleSelectItem(category.id)}
-                      className="rounded border-gray-300"
-                    />
-                  </td>
                   <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
                   <td className="px-4 py-3">
                     <div className="w-12 h-12 bg-gray-200 rounded border flex items-center justify-center flex-shrink-0">
                       {category.image ? (
                         <img
-                          src={getImageUrl(category?.image) || '/placeholder.svg'}
+                          src={getImageUrl(category.image) || '/placeholder.svg'}
                           alt={category.name}
-                          className="w-full h-full object-contain rounded"
+                          className="w-full h-full object-cover rounded"
                           onError={(e) => {
                             e.target.style.display = 'none';
                             e.target.nextSibling.style.display = 'flex';
@@ -342,47 +298,18 @@ const Category = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 font-medium">{category.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{category.level || 'N/A'}</td>
-                  {/* <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        category.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {category.isActive ? 'Hoạt động' : 'Không hoạt động'}
-                    </span>
-                  </td> */}
-                  <td className="px-4 py-3">
-                    <div className="flex space-x-2">
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {category.product_quantity || 0}
+                  </td>
+                  <td className="px-4 py-3 items-center justify-end">
+                    <div className="flex items-center justify-end">
                       <Link
                         to={`edit/${category.id}`}
-                        className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer"
+                        className="px-6 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer touch-manipulation"
                       >
                         <FileText className="w-3 h-3 mr-1" />
                         Sửa
                       </Link>
-                      <button
-                        // onClick={() => handleToggleActive(category._id, category.isActive)}
-                        className={`px-3 py-1 rounded text-xs flex items-center cursor-pointer transition-colors ${
-                          category.isActive
-                            ? 'bg-orange-500 text-white hover:bg-orange-600'
-                            : 'bg-green-500 text-white hover:bg-green-600'
-                        }`}
-                      >
-                        {category.isActive ? (
-                          <>
-                            <EyeOff className="w-3 h-3 mr-1" />
-                            Ẩn
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="w-3 h-3 mr-1" />
-                            Hiện
-                          </>
-                        )}
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -393,28 +320,10 @@ const Category = () => {
 
         {/* Mobile/Tablet Card View */}
         <div className="lg:hidden">
-          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <label className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                onChange={handleSelectAll}
-                checked={selectedItems.length === categories.length && categories.length > 0}
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm font-medium text-gray-700">Chọn tất cả</span>
-            </label>
-          </div>
-
           <div className="divide-y divide-gray-200">
             {currentCategories.map((category, index) => (
               <div key={category.id} className="p-4 hover:bg-gray-50">
                 <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.includes(category.id)}
-                    onChange={() => handleSelectItem(category.id)}
-                    className="rounded border-gray-300 mt-1 flex-shrink-0"
-                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -423,7 +332,7 @@ const Category = () => {
                             <img
                               src={getImageUrl(category.image) || '/placeholder.svg'}
                               alt={category.name}
-                              className="w-full h-full object-contain rounded"
+                              className="w-full h-full object-cover rounded"
                               onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
@@ -440,11 +349,11 @@ const Category = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-gray-900 truncate">
-                            #{startIndex + index + 1} - {category.name}
+                            {startIndex + index + 1} - {category.name}
                           </div>
-                          {/* <div className="text-xs text-gray-500 mt-1">
-                            Cấp độ: {category.level || 'N/A'}
-                          </div> */}
+                          <div className="text-xs text-gray-500 mt-1">
+                            Số lượng SP: {category.product_quantity || 0}
+                          </div>
                           <div className="mt-1">
                             <span
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -461,32 +370,11 @@ const Category = () => {
                       <div className="flex space-x-2 flex-shrink-0">
                         <Link
                           to={`edit/${category.id}`}
-                          className="px-3 py-1 bg-blue-5
-00 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer"
+                          className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer"
                         >
                           <FileText className="w-3 h-3 mr-1" />
                           Sửa
                         </Link>
-                        <button
-                          // onClick={() => handleToggleActive(category._id, category.isActive)}
-                          className={`px-3 py-1 rounded text-xs flex items-center cursor-pointer transition-colors ${
-                            category.isActive
-                              ? 'bg-orange-500 text-white hover:bg-orange-600'
-                              : 'bg-green-500 text-white hover:bg-green-600'
-                          }`}
-                        >
-                          {category.isActive ? (
-                            <>
-                              <EyeOff className="w-3 h-3 mr-1" />
-                              Ẩn
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-3 h-3 mr-1" />
-                              Hiện
-                            </>
-                          )}
-                        </button>
                       </div>
                     </div>
                   </div>

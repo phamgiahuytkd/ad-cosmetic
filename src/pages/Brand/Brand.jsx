@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Download,
   FileText,
@@ -14,10 +14,20 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-// import * as apis from "../../service"
 import { Link } from 'react-router-dom';
 import api from '../../service/api';
 import { getImageUrl } from '../../common/commonFunc';
+
+// Hàm chuyển đổi không dấu
+const removeDiacritics = (str) => {
+  return str
+    ? str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+    : '';
+};
 
 const Brand = () => {
   const [loading, setLoading] = useState(true);
@@ -58,14 +68,20 @@ const Brand = () => {
     setCurrentPage(1); // Reset to first page when filters change
   }, [searchTerm, statusFilter]);
 
-  const filteredBrands = brands.filter((brand) => {
-    const matchesSearch = brand.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === '' ||
-      (statusFilter === 'true' && brand.isActive) ||
-      (statusFilter === 'false' && !brand.isActive);
-    return matchesSearch && matchesStatus;
-  });
+  const filteredBrands = useMemo(() => {
+    return brands.filter((brand) => {
+      const matchesSearch =
+        removeDiacritics(brand.name || '')
+          .toLowerCase()
+          .includes(removeDiacritics(searchTerm).toLowerCase()) ||
+        brand.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        statusFilter === '' ||
+        (statusFilter === 'with_products' && (brand.product_quantity || 0) > 0) ||
+        (statusFilter === 'no_products' && (brand.product_quantity || 0) === 0);
+      return matchesSearch && matchesStatus;
+    });
+  }, [brands, searchTerm, statusFilter]);
 
   const totalPages = Math.ceil(filteredBrands.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -80,33 +96,12 @@ const Brand = () => {
     }
   };
 
-  // const handleSelectItem = (id) => {
-  //   setSelectedItems((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
-  // }
-
-  // const handleToggleActive = async (brandId, currentStatus) => {
-  //   try {
-  //     const response = await apis.apiUpdateBrandVisibility(brandId, {
-  //       isActive: !currentStatus,
-  //     })
-
-  //     if (response.success) {
-  //       setBrands((prev) =>
-  //         prev.map((brand) => (brand._id === brandId ? { ...brand, isActive: !brand.isActive } : brand)),
-  //       )
-  //     } else {
-  //       setError(response.msg || "Không thể cập nhật trạng thái thương hiệu")
-  //     }
-  //   } catch (error) {
-  //     console.error("Error toggling brand status:", error)
-  //     setError("Lỗi khi thay đổi trạng thái thương hiệu")
-  //   }
-  // }
-
   // Statistics
   const totalBrands = brands.length;
-  const activeBrands = brands.filter((brand) => brand.isActive).length;
-  const inactiveBrands = totalBrands - activeBrands;
+  const brandsWithProducts = brands.filter((brand) => (brand.product_quantity || 0) > 0).length;
+  const brandsWithoutProducts = brands.filter(
+    (brand) => (brand.product_quantity || 0) === 0,
+  ).length;
 
   if (loading) {
     return (
@@ -126,7 +121,7 @@ const Brand = () => {
           <div className="text-center">
             <div className="text-red-500 mb-4">{error}</div>
             <button
-              // onClick={getAllBrand}
+              onClick={getAllBrand}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Thử lại
@@ -150,10 +145,6 @@ const Brand = () => {
             <Plus className="w-4 h-4 mr-2" />
             THÊM THƯƠNG HIỆU
           </Link>
-          <button className="px-4 py-2 text-sm bg-green-500 text-white rounded-sm hover:bg-green-600 flex items-center transition-colors cursor-pointer">
-            <FileSpreadsheet className="w-4 h-4 mr-2" />
-            THÊM THƯƠNG HIỆU BẰNG EXCEL
-          </button>
           <Link
             to="/products/product-management"
             className="px-4 py-2 text-sm bg-orange-500 text-white rounded-sm hover:bg-orange-600 flex items-center transition-colors cursor-pointer"
@@ -172,8 +163,6 @@ const Brand = () => {
             {isMobileMenuOpen ? <X className="w-4 h-4 mr-2" /> : <Menu className="w-4 h-4 mr-2" />}
             MENU
           </button>
-
-          {/* Mobile dropdown menu */}
           {isMobileMenuOpen && (
             <div className="mt-2 space-y-2 bg-white border border-gray-200 rounded-sm shadow-lg p-2">
               <Link
@@ -183,10 +172,6 @@ const Brand = () => {
                 <Plus className="w-4 h-4 mr-2" />
                 THÊM THƯƠNG HIỆU
               </Link>
-              <button className="w-full px-4 py-2 text-sm bg-green-500 text-white rounded-sm hover:bg-green-600 flex items-center justify-center transition-colors cursor-pointer">
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                THÊM THƯƠNG HIỆU BẰNG EXCEL
-              </button>
               <Link
                 to="/products/product-management"
                 className="w-full px-4 py-2 text-sm bg-orange-500 text-white rounded-sm hover:bg-orange-600 flex items-center justify-center transition-colors cursor-pointer"
@@ -212,27 +197,25 @@ const Brand = () => {
             </div>
           </div>
         </div>
-
         <div className="bg-green-50 border border-green-200 rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-600">Đang hoạt động</p>
-              <p className="text-2xl font-bold text-green-800">{activeBrands}</p>
+              <p className="text-sm font-medium text-green-600">Có sản phẩm</p>
+              <p className="text-2xl font-bold text-green-800">{brandsWithProducts}</p>
             </div>
             <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-              <Eye className="w-4 h-4 text-white" />
+              <Package className="w-4 h-4 text-white" />
             </div>
           </div>
         </div>
-
         <div className="bg-red-50 border border-red-200 rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-red-600">Không hoạt động</p>
-              <p className="text-2xl font-bold text-red-800">{inactiveBrands}</p>
+              <p className="text-sm font-medium text-red-600">Không sản phẩm</p>
+              <p className="text-2xl font-bold text-red-800">{brandsWithoutProducts}</p>
             </div>
             <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-              <EyeOff className="w-4 h-4 text-white" />
+              <Package className="w-4 h-4 text-white" />
             </div>
           </div>
         </div>
@@ -259,8 +242,12 @@ const Brand = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="">Tất cả ({totalBrands})</option>
-              <option value="true">Hoạt động ({activeBrands})</option>
-              <option value="false">Không hoạt động ({inactiveBrands})</option>
+              <option value="with_products">
+                Có sản phẩm ({brands.filter((b) => (b.product_quantity || 0) > 0).length})
+              </option>
+              <option value="no_products">
+                Không sản phẩm ({brands.filter((b) => (b.product_quantity || 0) === 0).length})
+              </option>
             </select>
           </div>
         </div>
@@ -273,18 +260,6 @@ const Brand = () => {
           <h2 className="text-base font-semibold">
             QUẢN LÝ THƯƠNG HIỆU ({filteredBrands.length} mục)
           </h2>
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-            <button className="w-full sm:w-auto px-2 py-1 bg-white bg-opacity-90 rounded text-xs hover:bg-yellow-400 hover:text-white text-gray-700 font-medium flex items-center justify-center border border-white border-opacity-30 transition-all duration-200 cursor-pointer">
-              <Download className="w-3 h-3 mr-1" />
-              XUẤT EXCEL
-            </button>
-            <button
-              className="w-full sm:w-auto px-2 py-1 bg-red-500 rounded text-xs hover:bg-red-600 cursor-pointer disabled:opacity-50"
-              disabled={selectedItems.length === 0}
-            >
-              Xóa đã chọn ({selectedItems.length})
-            </button>
-          </div>
         </div>
 
         {/* Desktop Table */}
@@ -292,34 +267,18 @@ const Brand = () => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    onChange={handleSelectAll}
-                    checked={selectedItems.length === brands.length && brands.length > 0}
-                    className="rounded border-gray-300"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">STT</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Hình ảnh</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">STT</th>
+                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Hình ảnh</th>
+                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">
                   Tên thương hiệu
                 </th>
-                {/* <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Trạng thái</th> */}
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Hoạt động</th>
+                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Số lượng SP</th>
+                <th className="px-6 py-3 text-right text-sm font-bold text-gray-700">Hoạt động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {currentBrands.map((brand, index) => (
                 <tr key={brand.id} className="hover:bg-gray-100">
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedItems.includes(brand.id)}
-                      // onChange={() => handleSelectItem(brand._id)}
-                      className="rounded border-gray-300"
-                    />
-                  </td>
                   <td className="px-4 py-3 text-sm text-gray-900">{startIndex + index + 1}</td>
                   <td className="px-4 py-3">
                     <div className="w-12 h-12 bg-gray-200 rounded border flex items-center justify-center flex-shrink-0">
@@ -327,7 +286,7 @@ const Brand = () => {
                         <img
                           src={getImageUrl(brand.image) || '/placeholder.svg'}
                           alt={brand.name}
-                          className="w-full h-full object-contain rounded"
+                          className="w-full h-full object-cover rounded"
                           onError={(e) => {
                             e.target.style.display = 'none';
                             e.target.nextSibling.style.display = 'flex';
@@ -344,44 +303,16 @@ const Brand = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 font-medium">{brand.name}</td>
-                  {/* <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        brand.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {brand.isActive ? "Hoạt động" : "Không hoạt động"}
-                    </span>
-                  </td> */}
-                  <td className="px-4 py-3">
-                    <div className="flex space-x-2">
+                  <td className="px-4 py-3 text-sm text-gray-900">{brand.product_quantity || 0}</td>
+                  <td className="px-4 py-3 items-center justify-end">
+                    <div className="flex items-center justify-end">
                       <Link
                         to={`edit/${brand.id}`}
-                        className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer"
+                        className="px-6 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer touch-manipulation"
                       >
                         <FileText className="w-3 h-3 mr-1" />
                         Sửa
                       </Link>
-                      <button
-                        // onClick={() => handleToggleActive(brand.id, brand.isActive)}
-                        className={`px-3 py-1 rounded text-xs flex items-center cursor-pointer transition-colors ${
-                          brand.isActive
-                            ? 'bg-orange-500 text-white hover:bg-orange-600'
-                            : 'bg-green-500 text-white hover:bg-green-600'
-                        }`}
-                      >
-                        {brand.isActive ? (
-                          <>
-                            <EyeOff className="w-3 h-3 mr-1" />
-                            Ẩn
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="w-3 h-3 mr-1" />
-                            Hiện
-                          </>
-                        )}
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -392,40 +323,19 @@ const Brand = () => {
 
         {/* Mobile/Tablet Card View */}
         <div className="lg:hidden">
-          {/* Select All Mobile */}
-          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <label className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                onChange={handleSelectAll}
-                checked={selectedItems.length === brands.length && brands.length > 0}
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm font-medium text-gray-700">Chọn tất cả</span>
-            </label>
-          </div>
-
-          {/* Brand Cards */}
           <div className="divide-y divide-gray-200">
             {currentBrands.map((brand, index) => (
               <div key={brand.id} className="p-4 hover:bg-gray-50">
                 <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.includes(brand._id)}
-                    // onChange={() => handleSelectItem(brand._id)}
-                    className="rounded border-gray-300 mt-1 flex-shrink-0"
-                  />
-
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
                         <div className="w-16 h-16 bg-gray-200 rounded border flex items-center justify-center flex-shrink-0">
-                          {brand.logoUrl ? (
+                          {brand.image ? (
                             <img
-                              src={brand.logoUrl || '/placeholder.svg'}
+                              src={getImageUrl(brand.image) || '/placeholder.svg'}
                               alt={brand.name}
-                              className="w-full h-full object-contain rounded"
+                              className="w-full h-full object-cover rounded"
                               onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
@@ -434,7 +344,7 @@ const Brand = () => {
                           ) : null}
                           <div
                             className={`w-full h-full bg-gray-100 rounded flex items-center justify-center text-gray-400 text-sm ${
-                              brand.logoUrl ? 'hidden' : 'flex'
+                              brand.image ? 'hidden' : 'flex'
                             }`}
                           >
                             <span>📷</span>
@@ -442,7 +352,10 @@ const Brand = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-gray-900 truncate">
-                            #{startIndex + index + 1} - {brand.name}
+                            {startIndex + index + 1} - {brand.name}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Số lượng SP: {brand.product_quantity || 0}
                           </div>
                           <div className="mt-1">
                             <span
@@ -457,35 +370,14 @@ const Brand = () => {
                           </div>
                         </div>
                       </div>
-
                       <div className="flex space-x-2 flex-shrink-0">
                         <Link
-                          to={`edit/${brand._id}`}
+                          to={`edit/${brand.id}`}
                           className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer"
                         >
                           <FileText className="w-3 h-3 mr-1" />
                           Sửa
                         </Link>
-                        <button
-                          // onClick={() => handleToggleActive(brand._id, brand.isActive)}
-                          className={`px-3 py-1 rounded text-xs flex items-center cursor-pointer transition-colors ${
-                            brand.isActive
-                              ? 'bg-orange-500 text-white hover:bg-orange-600'
-                              : 'bg-green-500 text-white hover:bg-green-600'
-                          }`}
-                        >
-                          {brand.isActive ? (
-                            <>
-                              <EyeOff className="w-3 h-3 mr-1" />
-                              Ẩn
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-3 h-3 mr-1" />
-                              Hiện
-                            </>
-                          )}
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -512,7 +404,6 @@ const Brand = () => {
                 Hiển thị {startIndex + 1} - {Math.min(endIndex, filteredBrands.length)} của{' '}
                 {filteredBrands.length} mục
               </div>
-
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -522,7 +413,6 @@ const Brand = () => {
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Trước
                 </button>
-
                 <div className="flex items-center space-x-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <button
@@ -538,7 +428,6 @@ const Brand = () => {
                     </button>
                   ))}
                 </div>
-
                 <button
                   onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}

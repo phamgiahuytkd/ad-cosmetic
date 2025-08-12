@@ -1512,7 +1512,7 @@ const CreateProduct = () => {
                 </div>
 
                 <div className="mb-10">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 mt-[69px]">
                     Hướng dẫn <span className="text-red-500">*</span>
                   </label>
                   <Controller

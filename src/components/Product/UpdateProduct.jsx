@@ -1,174 +1,52 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { ArrowLeft, Plus, Upload, X, Trash2, Edit, Play } from "lucide-react"
-import { useForm, useFieldArray } from "react-hook-form"
-import { useParams } from "react-router-dom"
-// import * as apis from "../../service"
-import { MyEditor } from "../index"
+import { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, Plus, Upload, X, Trash2, Edit2 } from 'lucide-react';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import Select from 'react-select';
+import Modal from 'react-modal';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import api from '../../service/api';
+import AddAttributeModal from '../Modal/AddAttributeModal';
+import UpdateAttributeValueModal from '../Modal/UpdateAttributeValueModal';
+import { useParams } from 'react-router-dom';
+import Swal from 'sweetalert2';
+import { FaRegStopCircle } from 'react-icons/fa';
+import { VscDebugContinue } from 'react-icons/vsc';
 
-// Helper function to extract video ID and get embed URL
-const getVideoEmbedUrl = (url) => {
-  if (!url) return null
-
-  // YouTube patterns
-  const youtubeRegex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/
-  const youtubeMatch = url.match(youtubeRegex)
-  if (youtubeMatch) {
-    return `https://www.youtube.com/embed/${youtubeMatch[1]}`
+// Hàm xử lý URL ảnh
+export const getImageUrl = (imageName) => {
+  if (!imageName) return '';
+  if (/^https?:\/\//.test(imageName)) {
+    return imageName;
   }
+  return `http://localhost:8080/iCommerce/images/${imageName}`;
+};
 
-  // Vimeo patterns
-  const vimeoRegex = /(?:vimeo\.com\/)([0-9]+)/
-  const vimeoMatch = url.match(vimeoRegex)
-  if (vimeoMatch) {
-    return `https://player.vimeo.com/video/${vimeoMatch[1]}`
-  }
+// Bind modal to app element (for accessibility)
+Modal.setAppElement('#root');
 
-  // Direct video file URLs
-  if (url.match(/\.(mp4|webm|ogg)$/i)) {
-    return url
-  }
+// Quill modules configuration
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['link'],
+    ['clean'],
+  ],
+};
 
-  return null
-}
+// Quill formats configuration
+const quillFormats = ['header', 'bold', 'italic', 'underline', 'list', 'bullet', 'link'];
 
-const VideoPreview = ({ url, className = "" }) => {
-  const embedUrl = getVideoEmbedUrl(url)
+// CSS cho React Quill
+const quillEditorStyle = {
+  height: '400px',
+};
 
-  if (!embedUrl) return null
-
-  // For direct video files
-  if (url.match(/\.(mp4|webm|ogg)$/i)) {
-    return (
-      <div className={`relative ${className}`}>
-        <video controls className="w-full h-48 object-cover rounded" preload="metadata">
-          <source src={embedUrl} type="video/mp4" />
-          Trình duyệt không hỗ trợ video.
-        </video>
-      </div>
-    )
-  }
-
-  // For YouTube/Vimeo embeds
-  return (
-    <div className={`relative ${className}`}>
-      <iframe
-        src={embedUrl}
-        className="w-full h-48 rounded"
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        title="Video preview"
-      />
-    </div>
-  )
-}
-
-const SpecificationGroup = ({
-  index,
-  control,
-  register,
-  errors,
-  isLoading,
-  removeSpecification,
-  specificationsFields,
-}) => {
-  const {
-    fields: items,
-    append: appendItem,
-    remove: removeItem,
-  } = useFieldArray({
-    control,
-    name: `product.specifications[${index}].items`,
-  })
-
-  return (
-    <div className="mb-4 border p-4 rounded-sm">
-      <div className="flex justify-between items-center mb-2">
-        <span>Nhóm thông số {index + 1}</span>
-        {specificationsFields.length > 1 && (
-          <button
-            type="button"
-            onClick={() => removeSpecification(index)}
-            className="text-red-500 hover:text-red-600 cursor-pointer"
-            disabled={isLoading}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-      <div className="mb-2">
-        <label className="block text-sm font-medium text-gray-700">Nhóm</label>
-        <input
-          {...register(`product.specifications[${index}].group`, { required: "Nhóm là bắt buộc" })}
-          placeholder="Tên nhóm"
-          className={`w-full px-3 py-2 border rounded-sm ${errors.product?.specifications?.[index]?.group ? "border-red-500" : "border-gray-300"}`}
-          disabled={isLoading}
-        />
-        {errors.product?.specifications?.[index]?.group && (
-          <p className="text-red-500 text-sm mt-1">{errors.product.specifications[index].group.message}</p>
-        )}
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Mục thông số</label>
-        {items.map((item, itemIndex) => (
-          <div key={item.id} className="flex space-x-2 mb-2">
-            <div className="w-1/2">
-              <input
-                {...register(`product.specifications[${index}].items[${itemIndex}].label`, {
-                  required: "Nhãn là bắt buộc",
-                })}
-                placeholder="Nhãn"
-                className={`w-full px-3 py-2 border rounded-sm ${errors.product?.specifications?.[index]?.items?.[itemIndex]?.label ? "border-red-500" : "border-gray-300"}`}
-                disabled={isLoading}
-              />
-              {errors.product?.specifications?.[index]?.items?.[itemIndex]?.label && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.product.specifications[index].items[itemIndex].label.message}
-                </p>
-              )}
-            </div>
-            <div className="w-1/2">
-              <input
-                {...register(`product.specifications[${index}].items[${itemIndex}].value`, {
-                  required: "Giá trị là bắt buộc",
-                })}
-                placeholder="Giá trị"
-                className={`w-full px-3 py-2 border rounded-sm ${errors.product?.specifications?.[index]?.items?.[itemIndex]?.value ? "border-red-500" : "border-gray-300"}`}
-                disabled={isLoading}
-              />
-              {errors.product?.specifications?.[index]?.items?.[itemIndex]?.value && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.product.specifications[index].items[itemIndex].value.message}
-                </p>
-              )}
-            </div>
-            {items.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeItem(itemIndex)}
-                className="text-red-500 hover:text-red-600 mt-2 cursor-pointer"
-                disabled={isLoading}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() => appendItem({ label: "", value: "" })}
-          className="text-blue-500 hover:text-blue-600 flex items-center cursor-pointer"
-          disabled={isLoading}
-        >
-          <Plus className="w-4 h-4 mr-2" /> Thêm mục
-        </button>
-      </div>
-    </div>
-  )
-}
-
+// Component ProductItem
 const ProductItem = ({
   itemIndex,
   control,
@@ -181,11 +59,18 @@ const ProductItem = ({
   handleProductItemThumbChange,
   handleProductItemImageChange,
   setValue,
+  setError,
   clearErrors,
   productItemsFields,
-  suppliers,
-  branches,
-  setProductItemImagesDelete,
+  attributeOptions,
+  setAttributeOptions,
+  setIsModalOpen,
+  setIsUpdateValueModalOpen,
+  appendAttributeToAllItems,
+  removeAttributeFromAllItems,
+  trigger,
+  hasInitialPromotion,
+  variant,
 }) => {
   const {
     fields: attributes,
@@ -194,271 +79,419 @@ const ProductItem = ({
   } = useFieldArray({
     control,
     name: `productItems[${itemIndex}].attributes`,
-  })
+  });
+
+  const {
+    fields: promotions,
+    append: appendPromotion,
+    remove: removePromotion,
+  } = useFieldArray({
+    control,
+    name: `productItems[${itemIndex}].promotions`,
+  });
 
   useEffect(() => {
-    if (attributes.length === 0) {
-      appendAttribute({ code: "", value: "" })
+    if (attributes.length === 0 && itemIndex === 0) {
+      appendAttribute({ code: '', value: '' });
     }
-  }, [attributes.length, appendAttribute])
+  }, [attributes.length, appendAttribute, itemIndex]);
 
-  const handleRemoveExistingImage = (imageIndex, imageFileName, itemId) => {
-    // Xóa hình ảnh khỏi preview
-    setProductItemsPreviews((prev) => {
-      const newPreviews = [...prev]
-      newPreviews[itemIndex].images = newPreviews[itemIndex].images.filter((_, i) => i !== imageIndex)
-      return newPreviews
-    })
+  const selectedAttributeCodes = attributes
+    .map((attr, idx) => control._formValues.productItems[itemIndex]?.attributes[idx]?.code)
+    .filter(Boolean);
 
-    // Thêm vào danh sách xóa
-    setProductItemImagesDelete((prev) => ({
-      ...prev,
-      [itemId]: [...(prev[itemId] || []), imageFileName],
-    }))
+  const availableAttributeOptions = attributeOptions.filter(
+    (option) => !selectedAttributeCodes.includes(option.value),
+  );
 
-    // Cập nhật form values
-    const currentImages = control._formValues.productItems[itemIndex].images || []
-    const newImages = currentImages.filter((_, i) => i !== imageIndex)
-    setValue(`productItems[${itemIndex}].images`, newImages)
-  }
+  const handleDiscountChange = (promoIndex, field, value) => {
+    const price = parseFloat(control._formValues.productItems[itemIndex]?.price) || 0;
+    if (!price) {
+      setError(`productItems[${itemIndex}].promotions[${promoIndex}].${field}`, {
+        message: 'Vui lòng nhập giá chính trước',
+      });
+      return;
+    }
+    if (field === 'discountPrice' && value) {
+      const discountPrice = parseFloat(value);
+      if (discountPrice < 1) {
+        setError(`productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`, {
+          message: 'Giá giảm phải lớn hơn hoặc bằng 1',
+        });
+        return;
+      }
+      if (discountPrice >= price) {
+        setError(`productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`, {
+          message: 'Giá giảm phải nhỏ hơn giá chính',
+        });
+        return;
+      }
+      const discountPercent = Math.round(((price - discountPrice) / price) * 100);
+      setValue(
+        `productItems[${itemIndex}].promotions[${promoIndex}].discountPercent`,
+        discountPercent.toString(),
+      );
+      clearErrors(`productItems[${itemIndex}].promotions[${promoIndex}].discountPercent`);
+      clearErrors(`productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`);
+    } else if (field === 'discountPercent' && value) {
+      const discountPercent = parseFloat(value);
+      if (discountPercent > 100 || discountPercent < 0) {
+        setError(`productItems[${itemIndex}].promotions[${promoIndex}].discountPercent`, {
+          message: 'Phần trăm giảm giá phải từ 0 đến 100',
+        });
+        return;
+      }
+      const discountPrice = Math.round(price * (1 - discountPercent / 100));
+      if (discountPrice < 1) {
+        setError(`productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`, {
+          message: 'Giá giảm phải lớn hơn hoặc bằng 1',
+        });
+        return;
+      }
+      setValue(
+        `productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`,
+        discountPrice.toString(),
+      );
+      clearErrors(`productItems[${itemIndex}].promotions[${promoIndex}].discountPercent`);
+      clearErrors(`productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`);
+    }
+    trigger(`productItems[${itemIndex}].promotions[${promoIndex}]`);
+  };
+
+  const [localPromotionVisible, setLocalPromotionVisible] = useState(hasInitialPromotion);
+  const [isSelling, setIsSelling] = useState(!variant?.stop_day);
+
+  const handleStopPromotion = async (id) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận dừng khuyến mãi',
+      text: 'Bạn có chắc muốn dừng khuyến mãi này không?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Dừng khuyến mãi',
+      cancelButtonText: 'Hủy',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.put(`/discount/${id}`); // Giả sử đây là API dừng khuyến mãi
+        setLocalPromotionVisible(false);
+        Swal.fire('Đã dừng!', `Khuyến mãi ${id} đã được dừng.`, 'success');
+      } catch (error) {
+        console.error(error);
+        Swal.fire('Thất bại!', `Không thể dừng khuyến mãi ${id}.`, 'error');
+      }
+    }
+  };
+
+  const handleStopProductVariant = async (id) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận dừng bán',
+      text: 'Bạn có chắc muốn dừng bán sản phẩm này không?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Dừng bán',
+      cancelButtonText: 'Hủy',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.put(`/product-variant/${id}/stop`); // Giả sử đây là API dừng khuyến mãi
+        setIsSelling(false);
+        Swal.fire('Đã dừng!', `Sản phẩm ${id} đã dừng bán.`, 'success');
+      } catch (error) {
+        console.error(error);
+        Swal.fire('Thất bại!', `Không thể dừng bán sản phẩm ${id}.`, 'error');
+      }
+    }
+  };
+
+  const handleContinueProductVariant = async (id) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận bán',
+      text: 'Bạn có chắc muốn bán lại sản phẩm này?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.put(`/product-variant/${id}/continue`); // Giả sử đây là API dừng khuyến mãi
+        setIsSelling(true);
+        Swal.fire('Thành công!', `Sản phẩm ${id} đã được bán trở lại.`, 'success');
+      } catch (error) {
+        console.error(error);
+        Swal.fire('Thất bại!', `Không thể bán lại sản phẩm ${id}.`, 'error');
+      }
+    }
+  };
 
   return (
     <div className="mb-6 border p-6 rounded-sm">
       <div className="flex justify-between items-center mb-4">
         <span className="text-md font-medium">Mục sản phẩm {itemIndex + 1}</span>
-        {productItemsFields.length > 1 && (
+        {isSelling ? (
           <button
             type="button"
             onClick={() => {
-              removeProductItem(itemIndex)
-              setProductItemsPreviews((prev) => prev.filter((_, i) => i !== itemIndex))
+              handleStopProductVariant(variant?.id);
             }}
-            className="text-red-500 hover:text-red-600 cursor-pointer"
+            className="text-red-500 hover:text-red-600"
             disabled={isLoading}
           >
-            <Trash2 className="w-5 h-5" />
+            <FaRegStopCircle className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              handleContinueProductVariant(variant?.id);
+            }}
+            className="text-blue-500 hover:text-blue-600"
+            disabled={isLoading}
+          >
+            <VscDebugContinue className="w-5 h-5" />
           </button>
         )}
       </div>
 
-      <div className="mb-6">
-        <h4 className="text-md font-medium mb-4">Thông tin mục sản phẩm</h4>
+      <div className={isSelling ? '' : 'pointer-events-none opacity-60'}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tên mục <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                {...register(`productItems[${itemIndex}].name`, { required: "Tên mục là bắt buộc" })}
-                placeholder="Tên mục sản phẩm"
-                className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.productItems?.[itemIndex]?.name ? "border-red-600" : "border-gray-300"}`}
-                disabled={isLoading}
-              />
-              {errors.productItems?.[itemIndex]?.name && (
-                <p className="text-red-500 text-sm mt-1">{errors.productItems[itemIndex].name.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Barcode <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                {...register(`productItems[${itemIndex}].barcode`, { required: "Barcode là bắt buộc" })}
-                placeholder="Barcode"
-                className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.productItems?.[itemIndex]?.barcode ? "border-red-600" : "border-gray-300"}`}
-                disabled={isLoading}
-              />
-              {errors.productItems?.[itemIndex]?.barcode && (
-                <p className="text-red-500 text-sm mt-1">{errors.productItems[itemIndex].barcode.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
-              <select
-                {...register(`productItems[${itemIndex}].status`)}
-                className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.productItems?.[itemIndex]?.status ? "border-red-600" : "border-gray-300"}`}
-                disabled={isLoading}
-              >
-                <option value="">Chọn trạng thái</option>
-                <option value="inactive">Không hoạt động</option>
-                <option value="active">Hoạt động</option>
-                <option value="out_of_stock">Hết hàng</option>
-              </select>
-              {errors.productItems?.[itemIndex]?.status && (
-                <p className="text-red-500 text-sm mt-1">{errors.productItems[itemIndex].status.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hình ảnh chính <span className="text-red-500">*</span>
-              </label>
-              <div
-                className={`border-2 border-dashed rounded-sm p-6 text-center ${errors.productItems?.[itemIndex]?.thumb ? "border-red-600" : "border-gray-300"}`}
-              >
-                {productItemsPreviews[itemIndex]?.thumb ? (
-                  <div className="relative">
-                    <img
-                      src={productItemsPreviews[itemIndex].thumb || "/placeholder.svg"}
-                      alt="Thumbnail"
-                      className="mx-auto max-w-full max-h-48 object-contain rounded"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProductItemsPreviews((prev) => {
-                          const newPreviews = [...prev]
-                          newPreviews[itemIndex] = { ...newPreviews[itemIndex], thumb: "" }
-                          return newPreviews
-                        })
-                        setValue(`productItems[${itemIndex}].thumb`, null)
-                        setValue(`productItems[${itemIndex}].thumbUrl`, "")
-                      }}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 cursor-pointer"
-                      disabled={isLoading}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <label htmlFor={`item-thumb-${itemIndex}`} className="cursor-pointer">
-                      <span className="bg-blue-500 text-white px-4 py-2 rounded-sm hover:bg-blue-600 inline-block">
-                        Chọn ảnh
-                      </span>
-                      <input
-                        id={`item-thumb-${itemIndex}`}
-                        type="file"
-                        accept="image/png,image/jpeg,image/gif"
-                        onChange={(e) => handleProductItemThumbChange(itemIndex, e)}
-                        className="hidden"
-                        disabled={isLoading}
-                      />
-                    </label>
-                    <div className="text-gray-400 text-sm mt-2">PNG, JPG, GIF tối đa 10MB</div>
-                  </div>
-                )}
-              </div>
-              {errors.productItems?.[itemIndex]?.thumb && (
-                <p className="text-red-500 text-sm mt-1">{errors.productItems[itemIndex].thumb.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hình ảnh bổ sung <span className="text-red-500">*</span>
-              </label>
-              <div
-                className={`border-2 border-dashed rounded-sm p-6 text-center ${errors.productItems?.[itemIndex]?.images ? "border-red-600" : "border-gray-300"}`}
-              >
-                <div className="mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Hình ảnh chính <span className="text-red-500">*</span>
+            </label>
+            <div
+              className={`border-2 border-dashed rounded-sm p-6 text-center ${
+                errors.productItems?.[itemIndex]?.thumb ? 'border-red-600' : 'border-gray-300'
+              }`}
+            >
+              {productItemsPreviews[itemIndex]?.thumb ? (
+                <div className="relative">
+                  <img
+                    src={productItemsPreviews[itemIndex].thumb}
+                    alt="Thumbnail"
+                    className="mx-auto max-w-full max-h-48 object-contain rounded"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProductItemsPreviews((prev) => {
+                        const newPreviews = [...prev];
+                        newPreviews[itemIndex] = { ...newPreviews[itemIndex], thumb: '' };
+                        return newPreviews;
+                      });
+                      setValue(`productItems[${itemIndex}].thumb`, null);
+                      setValue(`productItems[${itemIndex}].existingThumb`, '');
+                      setError(`productItems[${itemIndex}].thumb`, {
+                        message: 'Hình ảnh chính là bắt buộc',
+                      });
+                      trigger(`productItems[${itemIndex}].thumb`);
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    disabled={isLoading}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div>
                   <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <label htmlFor={`item-images-${itemIndex}`} className="cursor-pointer">
+                  <label htmlFor={`item-thumb-${itemIndex}`} className="cursor-pointer">
                     <span className="bg-blue-500 text-white px-4 py-2 rounded-sm hover:bg-blue-600 inline-block">
-                      Chọn nhiều ảnh
+                      Chọn ảnh
                     </span>
                     <input
-                      id={`item-images-${itemIndex}`}
+                      id={`item-thumb-${itemIndex}`}
                       type="file"
                       accept="image/png,image/jpeg,image/gif"
-                      multiple
-                      onChange={(e) => handleProductItemImageChange(itemIndex, e)}
+                      onChange={(e) => handleProductItemThumbChange(itemIndex, e)}
                       className="hidden"
                       disabled={isLoading}
                     />
                   </label>
-                  <div className="text-gray-400 text-sm mt-2">PNG, JPG, GIF tối đa 10MB mỗi ảnh</div>
+                  <div className="text-gray-400 text-sm mt-2">PNG, JPG, GIF tối đa 10MB</div>
                 </div>
-                {productItemsPreviews[itemIndex]?.images?.some((img) => img) && (
-                  <div className="grid grid-cols-2 gap-4">
-                    {productItemsPreviews[itemIndex].images.map(
-                      (img, imageIndex) =>
-                        img && (
-                          <div key={imageIndex} className="relative">
-                            <img
-                              src={img || "/placeholder.svg"}
-                              alt={`Image ${imageIndex}`}
-                              className="mx-auto max-w-full max-h-48 object-contain rounded"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const currentItem = control._formValues.productItems[itemIndex]
-                                const currentImage = currentItem.images[imageIndex]
-
-                                if (currentImage && currentImage.imageFileName && currentItem._id) {
-                                  // Hình ảnh hiện tại từ server
-                                  handleRemoveExistingImage(imageIndex, currentImage.imageFileName, currentItem._id)
-                                } else {
-                                  // Hình ảnh mới được thêm
-                                  setProductItemsPreviews((prev) => {
-                                    const newPreviews = [...prev]
-                                    newPreviews[itemIndex].images = newPreviews[itemIndex].images.filter(
-                                      (_, i) => i !== imageIndex,
-                                    )
-                                    return newPreviews
-                                  })
-                                  const newImages = control._formValues.productItems[itemIndex].images.filter(
-                                    (_, i) => i !== imageIndex,
-                                  )
-                                  setValue(`productItems[${itemIndex}].images`, newImages)
-                                }
-                              }}
-                              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 cursor-pointer"
-                              disabled={isLoading}
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ),
-                    )}
-                  </div>
-                )}
-              </div>
-              {errors.productItems?.[itemIndex]?.images && (
-                <p className="text-red-500 text-sm mt-1">{errors.productItems[itemIndex].images.message}</p>
               )}
             </div>
+            {errors.productItems?.[itemIndex]?.thumb && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.productItems[itemIndex].thumb.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Hình ảnh bổ sung <span className="text-red-500">*</span>
+            </label>
+            <div
+              className={`border-2 border-dashed rounded-sm p-6 text-center ${
+                errors.productItems?.[itemIndex]?.images ? 'border-red-600' : 'border-gray-300'
+              }`}
+            >
+              <div>
+                <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <label htmlFor={`item-images-${itemIndex}`} className="cursor-pointer">
+                  <span className="bg-blue-500 text-white px-4 py-2 rounded-sm hover:bg-blue-600 inline-block">
+                    Chọn nhiều ảnh
+                  </span>
+                  <input
+                    id={`item-images-${itemIndex}`}
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif"
+                    multiple
+                    onChange={(e) => handleProductItemImageChange(itemIndex, e)}
+                    className="hidden"
+                    disabled={isLoading}
+                  />
+                </label>
+                <div className="text-gray-400 text-sm mt-2">PNG, JPG, GIF tối đa 10MB mỗi ảnh</div>
+              </div>
+              {productItemsPreviews[itemIndex]?.images?.some((img) => img) && (
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  {productItemsPreviews[itemIndex].images.map(
+                    (img, imageIndex) =>
+                      img && (
+                        <div key={imageIndex} className="relative">
+                          <img
+                            src={img}
+                            alt={`Image ${imageIndex}`}
+                            className="mx-auto max-w-full max-h-48 object-contain rounded"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProductItemsPreviews((prev) => {
+                                const newPreviews = [...prev];
+                                newPreviews[itemIndex].images = newPreviews[
+                                  itemIndex
+                                ].images.filter((_, i) => i !== imageIndex);
+                                return newPreviews;
+                              });
+                              const newImages = control._formValues.productItems[
+                                itemIndex
+                              ].images.filter((_, i) => i !== imageIndex);
+                              setValue(`productItems[${itemIndex}].images`, newImages);
+                              if (newImages.length === 0) {
+                                setError(`productItems[${itemIndex}].images`, {
+                                  message: 'Ít nhất một hình ảnh bổ sung là bắt buộc',
+                                });
+                              }
+                              trigger(`productItems[${itemIndex}].images`);
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                            disabled={isLoading}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ),
+                  )}
+                </div>
+              )}
+            </div>
+            {errors.productItems?.[itemIndex]?.images && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.productItems[itemIndex].images.message}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Thuộc tính <span className="text-red-500">*</span>
-          </label>
+          <div className="flex items-center mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Thuộc tính <span className="text-red-500">*</span>
+            </label>
+            {itemIndex === 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="ml-2 bg-blue-500 text-white rounded-sm p-1 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsUpdateValueModalOpen(true)}
+                  className="ml-2 bg-green-500 text-white rounded-sm p-1 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading}
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
           {attributes.map((attr, attrIndex) => (
             <div key={attr.id} className="mb-4 border p-4 rounded-sm">
               <div className="flex justify-between items-center mb-2">
                 <span>Thuộc tính {attrIndex + 1}</span>
-                {attributes.length > 1 && (
+                {itemIndex === 0 && attributes.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => removeAttribute(attrIndex)}
-                    className="text-red-500 hover:text-red-600 cursor-pointer"
+                    onClick={() => removeAttributeFromAllItems(attrIndex)}
+                    className="text-red-500 hover:text-red-600"
                     disabled={isLoading}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
               </div>
-              <div className="flex space-x-2">
-                <div className="w-1/2">
-                  <input
-                    type="text"
-                    {...register(`productItems[${itemIndex}].attributes[${attrIndex}].code`, {
-                      required: "Mã là bắt buộc",
-                    })}
-                    placeholder="Mã thuộc tính"
-                    className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.productItems?.[itemIndex]?.attributes?.[attrIndex]?.code ? "border-red-600" : "border-gray-300"}`}
-                    disabled={isLoading}
+              <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-2">
+                <div className="w-full sm:w-1/2">
+                  <Controller
+                    control={control}
+                    name={`productItems[${itemIndex}].attributes[${attrIndex}].code`}
+                    rules={{ required: 'Mã thuộc tính là bắt buộc' }}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        options={availableAttributeOptions}
+                        placeholder="Chọn Mistakes mã thuộc tính"
+                        isDisabled={isLoading || itemIndex !== 0}
+                        onChange={(selected) => {
+                          if (itemIndex === 0) {
+                            field.onChange(selected ? selected.value : '');
+                            setValue(
+                              `productItems[${itemIndex}].attributes[${attrIndex}].value`,
+                              '',
+                            );
+                            if (selected) {
+                              clearErrors(
+                                `productItems[${itemIndex}].attributes[${attrIndex}].code`,
+                              );
+                              clearErrors(
+                                `productItems[${itemIndex}].attributes[${attrIndex}].value`,
+                              );
+                              productItemsFields.forEach((_, i) => {
+                                if (i !== 0) {
+                                  setValue(
+                                    `productItems[${i}].attributes[${attrIndex}].code`,
+                                    selected ? selected.value : '',
+                                  );
+                                  setValue(`productItems[${i}].attributes[${attrIndex}].value`, '');
+                                }
+                              });
+                              trigger(`productItems[${itemIndex}]`);
+                              clearErrors('productItems');
+                            }
+                          }
+                        }}
+                        value={
+                          attributeOptions.find((option) => option.value === field.value) || null
+                        }
+                      />
+                    )}
                   />
                   {errors.productItems?.[itemIndex]?.attributes?.[attrIndex]?.code && (
                     <p className="text-red-500 text-sm mt-1">
@@ -466,15 +499,41 @@ const ProductItem = ({
                     </p>
                   )}
                 </div>
-                <div className="w-1/2">
-                  <input
-                    type="text"
-                    {...register(`productItems[${itemIndex}].attributes[${attrIndex}].value`, {
-                      required: "Giá trị là bắt buộc",
-                    })}
-                    placeholder="Giá trị thuộc tính"
-                    className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.productItems?.[itemIndex]?.attributes?.[attrIndex]?.value ? "border-red-600" : "border-gray-300"}`}
-                    disabled={isLoading}
+                <div className="w-full sm:w-1/2">
+                  <Controller
+                    control={control}
+                    name={`productItems[${itemIndex}].attributes[${attrIndex}].value`}
+                    rules={{
+                      required: 'Giá trị thuộc tính là bắt buộc',
+                    }}
+                    render={({ field }) => {
+                      const selectedCode =
+                        control._formValues.productItems[itemIndex]?.attributes[attrIndex]?.code ||
+                        '';
+                      const valueOptions =
+                        attributeOptions.find((opt) => opt.value === selectedCode)?.values || [];
+                      return (
+                        <Select
+                          {...field}
+                          options={valueOptions}
+                          placeholder="Chọn giá trị thuộc tính"
+                          isDisabled={isLoading || !selectedCode}
+                          onChange={(selected) => {
+                            field.onChange(selected ? selected.value : '');
+                            if (selected) {
+                              clearErrors(
+                                `productItems[${itemIndex}].attributes[${attrIndex}].value`,
+                              );
+                              trigger(`productItems[${itemIndex}]`);
+                              clearErrors('productItems');
+                            }
+                          }}
+                          value={
+                            valueOptions.find((option) => option.value === field.value) || null
+                          }
+                        />
+                      );
+                    }}
                   />
                   {errors.productItems?.[itemIndex]?.attributes?.[attrIndex]?.value && (
                     <p className="text-red-500 text-sm mt-1">
@@ -485,888 +544,1126 @@ const ProductItem = ({
               </div>
             </div>
           ))}
-          {errors.productItems?.[itemIndex]?.attributes && (
-            <p className="text-red-500 text-sm mt-1">{errors.productItems[itemIndex].attributes.message}</p>
+          {itemIndex === 0 && (
+            <button
+              type="button"
+              onClick={() => appendAttributeToAllItems({ code: '', value: '' })}
+              className="text-blue-500 hover:text-blue-600 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || availableAttributeOptions.length === 0}
+            >
+              <Plus className="w-4 h-4 mr-2" /> Thêm thuộc tính
+            </button>
           )}
-          <button
-            type="button"
-            onClick={() => appendAttribute({ code: "", value: "" })}
-            className="text-blue-500 hover:text-blue-600 flex items-center cursor-pointer"
-            disabled={isLoading}
-          >
-            <Plus className="w-4 h-4 mr-2" /> Thêm thuộc tính
-          </button>
         </div>
-      </div>
 
-      <div className="mt-6">
-        <h4 className="text-md font-medium mb-4">Thông tin kho hàng</h4>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Giá bán lẻ <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                {...register(`productItems[${itemIndex}].retailPrice`, {
-                  required: "Giá bán lẻ là bắt buộc",
-                  pattern: {
-                    value: /^\d*\.?\d*$/,
-                    message: "Giá bán lẻ phải là số không âm",
-                  },
-                  validate: (value) => {
-                    const num = Number.parseFloat(value)
-                    return (!isNaN(num) && num >= 0) || "Giá bán lẻ phải là số không âm"
-                  },
-                })}
-                placeholder="Giá bán lẻ"
-                className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.productItems?.[itemIndex]?.retailPrice ? "border-red-600" : "border-gray-300"}`}
-                disabled={isLoading}
-                onKeyDown={(e) => {
-                  if (e.key === "-" || e.key === "+" || e.key === "e" || e.key === "E") {
-                    e.preventDefault()
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Giá chính <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            {...register(`productItems[${itemIndex}].price`, {
+              required: 'Giá chính là bắt buộc',
+              min: { value: 0, message: 'Giá chính không được âm' },
+            })}
+            placeholder="Nhập giá chính"
+            className={`w-full px-3 py-2 border rounded-sm ${
+              errors.productItems?.[itemIndex]?.price ? 'border-red-500' : 'border-gray-300'
+            }`}
+            disabled={isLoading}
+            onChange={(e) => {
+              register(`productItems[${itemIndex}].price`).onChange(e);
+              if (!hasInitialPromotion && promotions.length > 0) {
+                promotions.forEach((_, promoIndex) => {
+                  const discountPercent = parseFloat(
+                    control._formValues.productItems[itemIndex]?.promotions[promoIndex]
+                      ?.discountPercent || 0,
+                  );
+                  if (discountPercent > 0) {
+                    const discountPrice = Math.round(
+                      parseFloat(e.target.value || 0) * (1 - discountPercent / 100),
+                    );
+                    if (discountPrice >= 1) {
+                      setValue(
+                        `productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`,
+                        discountPrice.toString(),
+                      );
+                      clearErrors(
+                        `productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`,
+                      );
+                    }
                   }
-                }}
-                onChange={(e) => {
-                  let value = e.target.value
-                  value = value.replace(/[^0-9.]/g, "")
-                  const parts = value.split(".")
-                  if (parts.length > 2) {
-                    value = parts[0] + "." + parts.slice(1).join("")
-                  }
-                  setValue(`productItems[${itemIndex}].retailPrice`, value, { shouldValidate: true })
-                  if (value && !isNaN(Number.parseFloat(value)) && Number.parseFloat(value) >= 0) {
-                    clearErrors(`productItems[${itemIndex}].retailPrice`)
-                  }
-                }}
-              />
-              {errors.productItems?.[itemIndex]?.retailPrice && (
-                <p className="text-red-500 text-sm mt-1">{errors.productItems[itemIndex].retailPrice.message}</p>
-              )}
-            </div>
+                });
+                trigger(`productItems[${itemIndex}].promotions`);
+              }
+              trigger(`productItems[${itemIndex}].price`);
+            }}
+          />
+          {errors.productItems?.[itemIndex]?.price && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.productItems[itemIndex].price.message}
+            </p>
+          )}
+        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Giá nhập <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                {...register(`productItems[${itemIndex}].wholesalePrice`, {
-                  required: "Giá nhập là bắt buộc",
-                  pattern: {
-                    value: /^\d*\.?\d*$/,
-                    message: "Giá nhập phải là số không âm",
-                  },
-                  validate: (value) => {
-                    const num = Number.parseFloat(value)
-                    return (!isNaN(num) && num >= 0) || "Giá nhập phải là số không âm"
-                  },
-                })}
-                placeholder="Giá nhập"
-                className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.productItems?.[itemIndex]?.wholesalePrice ? "border-red-600" : "border-gray-300"}`}
-                disabled={isLoading}
-                onKeyDown={(e) => {
-                  if (e.key === "-" || e.key === "+" || e.key === "e" || e.key === "E") {
-                    e.preventDefault()
-                  }
-                }}
-                onChange={(e) => {
-                  let value = e.target.value
-                  value = value.replace(/[^0-9.]/g, "")
-                  const parts = value.split(".")
-                  if (parts.length > 2) {
-                    value = parts[0] + "." + parts.slice(1).join("")
-                  }
-                  setValue(`productItems[${itemIndex}].wholesalePrice`, value, { shouldValidate: true })
-                  if (value && !isNaN(Number.parseFloat(value)) && Number.parseFloat(value) >= 0) {
-                    clearErrors(`productItems[${itemIndex}].wholesalePrice`)
-                  }
-                }}
-              />
-              {errors.productItems?.[itemIndex]?.wholesalePrice && (
-                <p className="text-red-500 text-sm mt-1">{errors.productItems[itemIndex].wholesalePrice.message}</p>
-              )}
-            </div>
-          </div>
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tồn kho <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            {...register(`productItems[${itemIndex}].stock`, {
+              required: 'Tồn kho là bắt buộc',
+              min: { value: 0, message: 'Tồn kho không được âm' },
+            })}
+            placeholder="Nhập số lượng tồn kho"
+            className={`w-full px-3 py-2 border rounded-sm ${
+              errors.productItems?.[itemIndex]?.stock ? 'border-red-500' : 'border-gray-300'
+            }`}
+            disabled={isLoading}
+            onChange={(e) => {
+              register(`productItems[${itemIndex}].stock`).onChange(e);
+              trigger(`productItems[${itemIndex}].stock`);
+            }}
+          />
+          {errors.productItems?.[itemIndex]?.stock && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.productItems[itemIndex].stock.message}
+            </p>
+          )}
+        </div>
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nhà cung cấp <span className="text-red-500">*</span>
-              </label>
-              <select
-                {...register(`productItems[${itemIndex}].supplier`, { required: "Nhà cung cấp là bắt buộc" })}
-                className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.productItems?.[itemIndex]?.supplier ? "border-red-600" : "border-gray-300"}`}
-                disabled={isLoading}
+        <div className="mt-6">
+          <div className="flex items-center mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Khuyến mãi {localPromotionVisible && '(Chỉ xem)'}
+            </label>
+            {!localPromotionVisible && (
+              <button
+                type="button"
+                onClick={() =>
+                  appendPromotion({
+                    startDate: '',
+                    endDate: '',
+                    discountPercent: '',
+                    discountPrice: '',
+                  })
+                }
+                className="ml-2 bg-blue-500 text-white rounded-sm p-1 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || promotions.length >= 1}
               >
-                <option value="">Chọn nhà cung cấp</option>
-                {suppliers.map((supplier) => (
-                  <option key={supplier._id} value={supplier._id}>
-                    {supplier.name}
-                  </option>
-                ))}
-              </select>
-              {errors.productItems?.[itemIndex]?.supplier && (
-                <p className="text-red-500 text-sm mt-1">{errors.productItems[itemIndex].supplier.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Chi nhánh <span className="text-red-500">*</span>
-              </label>
-              <select
-                {...register(`productItems[${itemIndex}].branch`, { required: "Chi nhánh là bắt buộc" })}
-                className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.productItems?.[itemIndex]?.branch ? "border-red-600" : "border-gray-300"}`}
-                disabled={isLoading}
-              >
-                <option value="">Chọn chi nhánh</option>
-                {branches.map((branch) => (
-                  <option key={branch._id} value={branch._id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
-              {errors.productItems?.[itemIndex]?.branch && (
-                <p className="text-red-500 text-sm mt-1">{errors.productItems[itemIndex].branch.message}</p>
-              )}
-            </div>
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
           </div>
+          {localPromotionVisible ? (
+            <div className="mb-4 border p-4 rounded-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span>Khuyến mãi hiện tại</span>
+                <button
+                  type="button"
+                  onClick={() => handleStopPromotion(variant?.id)}
+                  className="text-red-500 hover:text-red-600"
+                  disabled={isLoading}
+                >
+                  Dừng khuyến mãi
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Thời gian bắt đầu
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={variant?.start_day || ''}
+                    className="w-full px-3 py-2 border rounded-sm border-gray-300 bg-gray-100"
+                    readOnly
+                    disabled
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Thời gian kết thúc
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={variant?.end_day || ''}
+                    className="w-full px-3 py-2 border rounded-sm border-gray-300 bg-gray-100"
+                    readOnly
+                    disabled
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phần trăm giảm giá (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={variant?.percent || ''}
+                    className="w-full px-3 py-2 border rounded-sm border-gray-300 bg-gray-100"
+                    readOnly
+                    disabled
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Giá sau giảm
+                  </label>
+                  <input
+                    type="number"
+                    value={
+                      variant?.percent
+                        ? Math.round(variant.price * (1 - variant.percent / 100))
+                        : ''
+                    }
+                    className="w-full px-3 py-2 border rounded-sm border-gray-300 bg-gray-100"
+                    readOnly
+                    disabled
+                  />
+                  <p className="text-sm text-gray-600 mt-1">
+                    Giá sau giảm:{' '}
+                    {(variant?.percent
+                      ? Math.round(variant.price * (1 - variant.percent / 100))
+                      : 0
+                    ).toLocaleString('vi-VN')}{' '}
+                    VNĐ
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            promotions.map((promo, promoIndex) => (
+              <div key={promo.id} className="mb-4 border p-4 rounded-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <span>Khuyến mãi</span>
+                  <button
+                    type="button"
+                    onClick={() => removePromotion(promoIndex)}
+                    className="text-red-500 hover:text-red-600"
+                    disabled={isLoading}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Thời gian bắt đầu <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      {...register(
+                        `productItems[${itemIndex}].promotions[${promoIndex}].startDate`,
+                        {
+                          required: 'Thời gian bắt đầu là bắt buộc',
+                          validate: (value) => {
+                            const now = new Date();
+                            const start = new Date(value);
+                            return (
+                              start >= now ||
+                              'Thời gian bắt đầu phải lớn hơn hoặc bằng thời điểm hiện tại'
+                            );
+                          },
+                        },
+                      )}
+                      className={`w-full px-3 py-2 border rounded-sm ${
+                        errors.productItems?.[itemIndex]?.promotions?.[promoIndex]?.startDate
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                      onChange={(e) => {
+                        register(
+                          `productItems[${itemIndex}].promotions[${promoIndex}].startDate`,
+                        ).onChange(e);
+                        trigger(`productItems[${itemIndex}].promotions[${promoIndex}].startDate`);
+                      }}
+                    />
+                    {errors.productItems?.[itemIndex]?.promotions?.[promoIndex]?.startDate && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.productItems[itemIndex].promotions[promoIndex].startDate.message}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Thời gian kết thúc <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      {...register(`productItems[${itemIndex}].promotions[${promoIndex}].endDate`, {
+                        required: 'Thời gian kết thúc là bắt buộc',
+                        validate: (value) => {
+                          const startDate =
+                            control._formValues.productItems[itemIndex]?.promotions[promoIndex]
+                              ?.startDate;
+                          if (startDate && value && new Date(value) <= new Date(startDate)) {
+                            return 'Thời gian kết thúc phải sau thời gian bắt đầu';
+                          }
+                          return true;
+                        },
+                      })}
+                      className={`w-full px-3 py-2 border rounded-sm ${
+                        errors.productItems?.[itemIndex]?.promotions?.[promoIndex]?.endDate
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                      onChange={(e) => {
+                        register(
+                          `productItems[${itemIndex}].promotions[${promoIndex}].endDate`,
+                        ).onChange(e);
+                        trigger(`productItems[${itemIndex}].promotions[${promoIndex}].endDate`);
+                      }}
+                    />
+                    {errors.productItems?.[itemIndex]?.promotions?.[promoIndex]?.endDate && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.productItems[itemIndex].promotions[promoIndex].endDate.message}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phần trăm giảm giá (%) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      {...register(
+                        `productItems[${itemIndex}].promotions[${promoIndex}].discountPercent`,
+                        {
+                          required: 'Phần trăm giảm giá là bắt buộc',
+                          min: { value: 0, message: 'Phần trăm giảm giá không được âm' },
+                          max: { value: 100, message: 'Phần trăm giảm giá không vượt quá 100%' },
+                        },
+                      )}
+                      placeholder="Nhập phần trăm giảm giá"
+                      className={`w-full px-3 py-2 border rounded-sm ${
+                        errors.productItems?.[itemIndex]?.promotions?.[promoIndex]?.discountPercent
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                      onChange={(e) => {
+                        register(
+                          `productItems[${itemIndex}].promotions[${promoIndex}].discountPercent`,
+                        ).onChange(e);
+                        handleDiscountChange(promoIndex, 'discountPercent', e.target.value);
+                        trigger(
+                          `productItems[${itemIndex}].promotions[${promoIndex}].discountPercent`,
+                        );
+                      }}
+                    />
+                    {errors.productItems?.[itemIndex]?.promotions?.[promoIndex]
+                      ?.discountPercent && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {
+                          errors.productItems[itemIndex].promotions[promoIndex].discountPercent
+                            .message
+                        }
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Giá sau giảm <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      {...register(
+                        `productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`,
+                        {
+                          required: 'Giá sau giảm là bắt buộc',
+                          min: { value: 1, message: 'Giá sau giảm phải lớn hơn hoặc bằng 1' },
+                          validate: {
+                            lessThanPrice: (value) => {
+                              const price =
+                                parseFloat(control._formValues.productItems[itemIndex]?.price) || 0;
+                              return value < price || 'Giá sau giảm phải nhỏ hơn giá chính';
+                            },
+                          },
+                        },
+                      )}
+                      placeholder="Nhập giá sau giảm"
+                      className={`w-full px-3 py-2 border rounded-sm ${
+                        errors.productItems?.[itemIndex]?.promotions?.[promoIndex]?.discountPrice
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
+                      disabled={isLoading}
+                      onChange={(e) => {
+                        register(
+                          `productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`,
+                        ).onChange(e);
+                        handleDiscountChange(promoIndex, 'discountPrice', e.target.value);
+                        trigger(
+                          `productItems[${itemIndex}].promotions[${promoIndex}].discountPrice`,
+                        );
+                      }}
+                    />
+                    {errors.productItems?.[itemIndex]?.promotions?.[promoIndex]?.discountPrice && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {
+                          errors.productItems[itemIndex].promotions[promoIndex].discountPrice
+                            .message
+                        }
+                      </p>
+                    )}
+                    {control._formValues.productItems[itemIndex]?.promotions[promoIndex]
+                      ?.discountPrice && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Giá sau giảm:{' '}
+                        {parseFloat(
+                          control._formValues.productItems[itemIndex].promotions[promoIndex]
+                            .discountPrice,
+                        ).toLocaleString('vi-VN')}{' '}
+                        VNĐ
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
+// Component chính
 const UpdateProduct = () => {
-  const params = useParams()
-  const productId = params?.productId
-
   const {
     register,
-    handleSubmit,
     formState: { errors },
+    reset,
     setError,
     clearErrors,
     setValue,
     control,
-    reset,
-    watch,
+    handleSubmit,
+    getValues,
+    trigger,
   } = useForm({
-    mode: "onChange",
+    mode: 'onChange',
+    shouldUnregister: false,
     defaultValues: {
       product: {
-        name: "",
-        description: "",
-        videoUrl: "",
-        thumb: null,
-        thumbUrl: "",
-        thumbFileName: "",
-        featuredImages: [],
-        specifications: [{ group: "", items: [{ label: "", value: "" }] }],
-        brandId: "",
-        categoryId: "",
-        isActive: false,
-        shortDescription: "",
+        name: '',
+        description: '',
+        ingredient: '',
+        instruction: '',
+        image: null,
+        existingImage: '',
+        category_id: '',
+        brand_id: '',
       },
-      productItems: [],
+      productItems: [
+        {
+          price: '',
+          thumb: null,
+          existingThumb: '',
+          images: [],
+          stock: '',
+          attributes: [{ code: '', value: '' }],
+          promotions: [],
+        },
+      ],
     },
-  })
-
-  // Watch video URL for preview
-  const videoUrl = watch("product.videoUrl")
-
-  const {
-    fields: specificationsFields,
-    append: appendSpecification,
-    remove: removeSpecification,
-  } = useFieldArray({
-    control,
-    name: "product.specifications",
-  })
+  });
 
   const {
     fields: productItemsFields,
     append: appendProductItem,
     remove: removeProductItem,
-  } = useFieldArray({
-    control,
-    name: "productItems",
-  })
+  } = useFieldArray({ control, name: 'productItems' });
 
-  const [thumbPreview, setThumbPreview] = useState("")
-  const [featuredImagesPreviews, setFeaturedImagesPreviews] = useState([])
-  const [productItemsPreviews, setProductItemsPreviews] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingData, setIsLoadingData] = useState(true)
-  const [brands, setBrands] = useState([])
-  const [categories, setCategories] = useState([])
-  const [suppliers, setSuppliers] = useState([])
-  const [branches, setBranches] = useState([])
-  const [loadingOptions, setLoadingOptions] = useState(true)
+  const [productItemsPreviews, setProductItemsPreviews] = useState([{ thumb: '', images: [] }]);
+  const [productImagePreview, setProductImagePreview] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [brands, setBrands] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [attributeOptions, setAttributeOptions] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUpdateValueModalOpen, setIsUpdateValueModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [variantResponse, setVariantResponse] = useState(null);
 
-  // State để track các hình ảnh cần xóa
-  const [featuredImagesDelete, setFeaturedImagesDelete] = useState([])
-  const [productItemImagesDelete, setProductItemImagesDelete] = useState({})
+  const memoizedReset = useCallback(reset, [reset]);
+  const { productId } = useParams();
 
-  // Load dữ liệu sản phẩm hiện tại
-  // useEffect(() => {
-  //   const fetchProductData = async () => {
-  //     if (!productId) return
+  const fetchProduct = async () => {
+    try {
+      setIsLoading(true);
+      const [productResponse, variantResponse] = await Promise.all([
+        api.get(`/product/${productId}`),
+        api.get(`/product-variant/${productId}/admin`),
+      ]);
 
-  //     try {
-  //       setIsLoadingData(true)
+      const product = productResponse.data.result;
+      setVariantResponse(variantResponse.data.result);
 
-  //       // Load cả product data và options cùng lúc
-  //       const [productResponse, brandRes, categoryRes, supplierRes, branchRes] = await Promise.all([
-  //         apis.apiGetProduct(productId),
-  //         apis.apiGetAllBrands(),
-  //         apis.apiGetAllCategories(),
-  //         apis.apiGetAllSuppliers(),
-  //         apis.apiGetAllBranches(),
-  //       ])
+      memoizedReset({
+        product: {
+          name: product.name || '',
+          description: product.description || '',
+          ingredient: product.ingredient || '',
+          instruction: product.instruction || '',
+          image: null,
+          existingImage: product.image || '',
+          category_id: categories.find((cat) => cat.label === product.category)?.value || '',
+          brand_id: brands.find((brand) => brand.label === product.brand)?.value || '',
+        },
+        productItems: variantResponse.data.result?.map((variant) => ({
+          id: variant.id || '',
+          price: variant.price?.toString() || '',
+          thumb: null,
+          existingThumb: variant.image || '',
+          images:
+            variant.images
+              ?.split(',')
+              .map((img) => img.trim())
+              .filter(Boolean) || [],
+          stock: variant.stock?.toString() || '',
+          attributes: variant.attribute_values?.map((attr) => ({
+            code: attributeOptions.find((opt) => opt.label === attr.attribute_id)?.value || '',
+            value:
+              attributeOptions
+                .find((opt) => opt.label === attr.attribute_id)
+                ?.values.find((val) => val.label === attr.id)?.value || '',
+          })) || [{ code: '', value: '' }],
+          promotions: [],
+        })) || [
+          {
+            price: '',
+            thumb: null,
+            existingThumb: '',
+            images: [],
+            stock: '',
+            attributes: [{ code: '', value: '' }],
+            promotions: [],
+          },
+        ],
+      });
 
-  //       const productData = productResponse.data
-
-  //       // Set options trước
-  //       setBrands(brandRes?.brands?.filter((b) => b.isActive) || [])
-  //       setCategories(categoryRes?.categories?.filter((c) => c.isActive) || [])
-  //       setSuppliers(supplierRes?.suppliers?.filter((s) => s.isActive) || [])
-  //       setBranches(branchRes?.branches?.filter((b) => b.isActive) || [])
-  //       setLoadingOptions(false)
-
-  //       // Reset form với dữ liệu hiện tại
-  //       const formData = {
-  //         product: {
-  //           name: productData.name || "",
-  //           description: productData.description || "",
-  //           videoUrl: productData.videoUrl || "",
-  //           thumb: null,
-  //           thumbUrl: productData.thumbUrl || "",
-  //           thumbFileName: productData.thumbFileName || "",
-  //           featuredImages: productData.featuredImages || [],
-  //           specifications:
-  //             productData.specifications?.length > 0
-  //               ? productData.specifications
-  //               : [{ group: "", items: [{ label: "", value: "" }] }],
-  //           brandId: productData.brandId || "",
-  //           categoryId: productData.categoryId || "",
-  //           isActive: productData.isActive || false,
-  //           shortDescription: productData.shortDescription || "",
-  //         },
-  //         productItems:
-  //           productData.productItems?.map((item) => ({
-  //             _id: item._id,
-  //             name: item.name || "",
-  //             barcode: item.barcode || "",
-  //             thumb: null,
-  //             thumbUrl: item.thumbUrl || "",
-  //             thumbFileName: item.thumbFileName || "",
-  //             images: item.images || [],
-  //             attributes: item.attributes?.length > 0 ? item.attributes : [{ code: "", value: "" }],
-  //             status: item.status || "inactive",
-  //             retailPrice: item.retailPrice?.toString() || "",
-  //             wholesalePrice: item.wholesalePrice?.toString() || "",
-  //             supplier: item.inventory?.[0]?.supplierId || "",
-  //             branch: item.inventory?.[0]?.branchId || "",
-  //           })) || [],
-  //       }
-
-  //       reset(formData)
-
-  //       // Set previews cho hình ảnh hiện tại
-  //       setThumbPreview(productData.thumbUrl || "")
-  //       setFeaturedImagesPreviews(productData.featuredImages?.map((img) => img.image) || [])
-
-  //       const itemPreviews =
-  //         productData.productItems?.map((item) => ({
-  //           thumb: item.thumbUrl || "",
-  //           images: item.images?.map((img) => img.image) || [],
-  //         })) || []
-  //       setProductItemsPreviews(itemPreviews)
-  //     } catch (error) {
-  //       console.error("Error fetching product data:", error)
-  //       setError("form", { message: "Không thể tải dữ liệu sản phẩm" })
-  //     } finally {
-  //       setIsLoadingData(false)
-  //     }
-  //   }
-
-  //   fetchProductData()
-  // }, [productId, reset, setError])
+      setProductImagePreview(product.image ? getImageUrl(product.image) : '');
+      setProductItemsPreviews(
+        variantResponse.data.result?.map((variant) => ({
+          thumb: variant.image ? getImageUrl(variant.image) : '',
+          images:
+            variant.images
+              ?.split(',')
+              .map((img) => getImageUrl(img.trim()))
+              .filter(Boolean) || [],
+        })) || [{ thumb: '', images: [] }],
+      );
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      setErrorMessage('Lỗi khi tải dữ liệu sản phẩm');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (errors.form) {
-      clearErrors("form")
+    if (productId && categories.length > 0 && brands.length > 0 && attributeOptions.length > 0) {
+      fetchProduct();
     }
-  }, [control._formValues, clearErrors, errors.form])
+  }, [productId, categories, brands, attributeOptions, memoizedReset]);
 
-  const handleThumbChange = (e) => {
-    clearErrors("product.thumb")
-    const file = e.target.files[0]
-    if (file) {
-      const validTypes = ["image/png", "image/jpeg", "image/gif"]
-      if (!validTypes.includes(file.type)) {
-        setError("product.thumb", { message: "Chỉ chấp nhận PNG, JPG, GIF" })
-        setThumbPreview("")
-        setValue("product.thumb", null)
-        return
+  useEffect(() => {
+    register('product.image', {
+      validate: () =>
+        getValues('product.image') || getValues('product.existingImage')
+          ? true
+          : 'Hình ảnh sản phẩm là bắt buộc',
+    });
+  }, [register, getValues]);
+
+  useEffect(() => {
+    productItemsFields.forEach((_, index) => {
+      register(`productItems[${index}].thumb`, {
+        validate: () =>
+          getValues(`productItems[${index}].thumb`) ||
+          getValues(`productItems[${index}].existingThumb`)
+            ? true
+            : 'Hình ảnh chính là bắt buộc',
+      });
+      register(`productItems[${index}].images`, {
+        validate: (value) =>
+          (Array.isArray(value) && value.length > 0) ||
+          getValues(`productItems[${index}].images`)?.length > 0
+            ? true
+            : 'Ít nhất một hình ảnh bổ sung là bắt buộc',
+      });
+    });
+  }, [productItemsFields, register, getValues]);
+
+  const fetchBrands = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.get('/brand');
+      setBrands(
+        response.data.result.map((brand) => ({
+          value: brand.id,
+          label: brand.name,
+        })),
+      );
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || 'Lỗi lấy danh sách thương hiệu');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.get('/category');
+      setCategories(
+        response.data.result.map((category) => ({
+          value: category.id,
+          label: category.name,
+        })),
+      );
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || 'Lỗi lấy danh sách danh mục');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAttributes = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.get('/attribute');
+      const attributes = response.data.result || [];
+      if (!Array.isArray(attributes)) {
+        throw new Error('Dữ liệu thuộc tính không hợp lệ');
       }
-      if (file.size > 10 * 1024 * 1024) {
-        setError("product.thumb", { message: "Hình ảnh không vượt quá 10MB" })
-        setThumbPreview("")
-        setValue("product.thumb", null)
-        return
+      const formattedAttributes = attributes.map((attr) => ({
+        value: attr.id,
+        label: attr.name,
+        values: (attr.values || []).map((val) => ({
+          value: val.id,
+          label: val.name,
+        })),
+      }));
+      setAttributeOptions(formattedAttributes);
+    } catch (error) {
+      console.error('Error fetching attributes:', error);
+      setErrorMessage(error.message || 'Lỗi lấy danh sách thuộc tính');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([fetchBrands(), fetchCategories(), fetchAttributes()]);
+      } finally {
+        setIsLoading(false);
       }
-      setValue("product.thumb", file)
-      setValue("product.thumbFileName", file.name)
-      const reader = new FileReader()
-      reader.onload = (e) => setThumbPreview(e.target.result)
-      reader.readAsDataURL(file)
-    } else {
-      setThumbPreview("")
-      setValue("product.thumb", null)
-    }
-  }
+    };
+    fetchData();
+  }, []);
 
-  const handleFeaturedImageChange = (e) => {
-    clearErrors("product.featuredImages")
-    const files = Array.from(e.target.files)
-    if (files.length > 0) {
-      const validTypes = ["image/png", "image/jpeg", "image/gif"]
-      const invalidFiles = files.filter((file) => !validTypes.includes(file.type) || file.size > 10 * 1024 * 1024)
-      if (invalidFiles.length > 0) {
-        setError("product.featuredImages", {
-          message: "Một số hình ảnh không hợp lệ (chỉ chấp nhận PNG, JPG, GIF, tối đa 10MB)",
-        })
-        return
+  const appendAttributeToAllItems = (attribute) => {
+    productItemsFields.forEach((_, index) => {
+      const currentAttributes = getValues(`productItems[${index}].attributes`) || [];
+      setValue(`productItems[${index}].attributes`, [...currentAttributes, attribute]);
+      trigger(`productItems[${index}]`);
+    });
+  };
+
+  const removeAttributeFromAllItems = (attrIndex) => {
+    productItemsFields.forEach((_, index) => {
+      const currentAttributes = getValues(`productItems[${index}].attributes`) || [];
+      setValue(
+        `productItems[${index}].attributes`,
+        currentAttributes.filter((_, i) => i !== attrIndex),
+      );
+      trigger(`productItems[${index}]`);
+    });
+  };
+
+  const validateProductItemsAttributes = () => {
+    const productItems = getValues('productItems');
+    if (productItems.length < 2) return true;
+
+    clearErrors('productItems');
+    const firstItemAttributes = productItems[0]?.attributes || [];
+    const firstItemCodes = firstItemAttributes.map((attr) => attr.code).filter(Boolean);
+
+    for (let i = 0; i < productItems.length; i++) {
+      const currentItemAttributes = productItems[i]?.attributes || [];
+      const currentItemCodes = currentItemAttributes.map((attr) => attr.code).filter(Boolean);
+
+      if (
+        firstItemCodes.length !== currentItemCodes.length ||
+        !firstItemCodes.every((code, idx) => code === currentItemCodes[idx])
+      ) {
+        setError('productItems', {
+          type: 'manual',
+          message: 'Tất cả mục sản phẩm phải có danh sách thuộc tính giống nhau',
+        });
+        return false;
       }
-      const newImages = files.map((file) => ({ image: file, imageFileName: file.name }))
-      const currentImages = control._formValues.product.featuredImages || []
-      setValue("product.featuredImages", [...currentImages, ...newImages])
-      const previews = files.map((file) => {
-        const reader = new FileReader()
-        return new Promise((resolve) => {
-          reader.onload = (e) => resolve(e.target.result)
-          reader.readAsDataURL(file)
-        })
-      })
-      Promise.all(previews).then((results) => {
-        setFeaturedImagesPreviews((prev) => [...prev, ...results])
-      })
-    }
-  }
-
-  const handleRemoveFeaturedImage = (index) => {
-    const currentImages = control._formValues.product.featuredImages || []
-    const imageToRemove = currentImages[index]
-
-    if (imageToRemove && imageToRemove.imageFileName && typeof imageToRemove.image === "string") {
-      // Hình ảnh hiện tại từ server
-      setFeaturedImagesDelete((prev) => [...prev, imageToRemove.imageFileName])
     }
 
-    // Xóa khỏi preview và form
-    setFeaturedImagesPreviews((prev) => prev.filter((_, i) => i !== index))
-    const newImages = currentImages.filter((_, i) => i !== index)
-    setValue("product.featuredImages", newImages)
-  }
+    const attributeValueSets = productItems.map((item, index) => ({
+      index,
+      values: (item.attributes || []).map((attr) => attr.value || '').join('|'),
+    }));
+
+    const seenValues = new Map();
+    let hasDuplicate = false;
+
+    for (const { index, values } of attributeValueSets) {
+      if (seenValues.has(values)) {
+        const duplicateIndex = seenValues.get(values);
+        setError(`productItems[${index}].attributes`, {
+          type: 'manual',
+          message: `Tổ hợp giá trị thuộc tính trùng với mục sản phẩm ${duplicateIndex + 1}`,
+        });
+        setError(`productItems[${duplicateIndex}].attributes`, {
+          type: 'manual',
+          message: `Tổ hợp giá trị thuộc tính trùng với mục sản phẩm ${index + 1}`,
+        });
+        hasDuplicate = true;
+      } else {
+        seenValues.set(values, index);
+      }
+    }
+
+    if (hasDuplicate) {
+      setError('productItems', {
+        type: 'manual',
+        message: 'Mỗi mục sản phẩm phải có tổ hợp giá trị thuộc tính duy nhất',
+      });
+      return false;
+    }
+
+    clearErrors('productItems');
+    productItems.forEach((_, index) => {
+      clearErrors(`productItems[${index}].attributes`);
+    });
+
+    return true;
+  };
+
+  const handleProductImageChange = (e) => {
+    clearErrors('product.image');
+    const file = e.target.files[0];
+    if (!file) {
+      if (!getValues('product.existingImage')) {
+        setProductImagePreview('');
+        setValue('product.image', null);
+        setError('product.image', { message: 'Hình ảnh sản phẩm là bắt buộc' });
+        trigger('product.image');
+      }
+      return;
+    }
+
+    const validTypes = ['image/png', 'image/jpeg', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setError('product.image', { message: 'Chỉ chấp nhận PNG, JPG, GIF' });
+      setProductImagePreview(getValues('product.existingImage') || '');
+      setValue('product.image', null);
+      trigger('product.image');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('product.image', { message: 'Hình ảnh không vượt quá 10MB' });
+      setProductImagePreview(getValues('product.existingImage') || '');
+      setValue('product.image', null);
+      trigger('product.image');
+      return;
+    }
+
+    setValue('product.image', file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setProductImagePreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+    trigger('product.image');
+  };
 
   const handleProductItemThumbChange = (itemIndex, e) => {
-    clearErrors(`productItems[${itemIndex}].thumb`)
-    clearErrors("productItems")
-    const file = e.target.files[0]
-    if (file) {
-      const validTypes = ["image/png", "image/jpeg", "image/gif"]
-      if (!validTypes.includes(file.type)) {
-        setError(`productItems[${itemIndex}].thumb`, { message: "Chỉ chấp nhận PNG, JPG, GIF" })
+    clearErrors(`productItems[${itemIndex}].thumb`);
+    clearErrors('productItems');
+    const file = e.target.files[0];
+    if (!file) {
+      if (!getValues(`productItems[${itemIndex}].existingThumb`)) {
         setProductItemsPreviews((prev) => {
-          const newPreviews = [...prev]
-          newPreviews[itemIndex] = { ...newPreviews[itemIndex], thumb: "" }
-          return newPreviews
-        })
-        setValue(`productItems[${itemIndex}].thumb`, null)
-        return
+          const newPreviews = [...prev];
+          newPreviews[itemIndex] = { ...newPreviews[itemIndex], thumb: '' };
+          return newPreviews;
+        });
+        setValue(`productItems[${itemIndex}].thumb`, null);
+        setValue(`productItems[${itemIndex}].existingThumb`, '');
+        setError(`productItems[${itemIndex}].thumb`, {
+          message: 'Hình ảnh chính là bắt buộc',
+        });
+        trigger(`productItems[${itemIndex}].thumb`);
       }
-      if (file.size > 10 * 1024 * 1024) {
-        setError(`productItems[${itemIndex}].thumb`, { message: "Hình ảnh không vượt quá 10MB" })
-        setProductItemsPreviews((prev) => {
-          const newPreviews = [...prev]
-          newPreviews[itemIndex] = { ...newPreviews[itemIndex], thumb: "" }
-          return newPreviews
-        })
-        setValue(`productItems[${itemIndex}].thumb`, null)
-        return
-      }
-      setValue(`productItems[${itemIndex}].thumb`, file)
-      setValue(`productItems[${itemIndex}].thumbFileName`, file.name)
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setProductItemsPreviews((prev) => {
-          const newPreviews = [...prev]
-          newPreviews[itemIndex] = { ...newPreviews[itemIndex], thumb: e.target.result }
-          return newPreviews
-        })
-      }
-      reader.readAsDataURL(file)
+      return;
     }
-  }
+
+    const validTypes = ['image/png', 'image/jpeg', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setError(`productItems[${itemIndex}].thumb`, { message: 'Chỉ chấp nhận PNG, JPG, GIF' });
+      setProductItemsPreviews((prev) => {
+        const newPreviews = [...prev];
+        newPreviews[itemIndex] = {
+          ...newPreviews[itemIndex],
+          thumb: getValues(`productItems[${itemIndex}].existingThumb`) || '',
+        };
+        return newPreviews;
+      });
+      setValue(`productItems[${itemIndex}].thumb`, null);
+      trigger(`productItems[${itemIndex}].thumb`);
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError(`productItems[${itemIndex}].thumb`, { message: 'Hình ảnh không vượt quá 10MB' });
+      setProductItemsPreviews((prev) => {
+        const newPreviews = [...prev];
+        newPreviews[itemIndex] = {
+          ...newPreviews[itemIndex],
+          thumb: getValues(`productItems[${itemIndex}].existingThumb`) || '',
+        };
+        return newPreviews;
+      });
+      setValue(`productItems[${itemIndex}].thumb`, null);
+      trigger(`productItems[${itemIndex}].thumb`);
+      return;
+    }
+
+    setValue(`productItems[${itemIndex}].thumb`, file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setProductItemsPreviews((prev) => {
+        const newPreviews = [...prev];
+        if (!newPreviews[itemIndex]) {
+          newPreviews[itemIndex] = { thumb: '', images: [] };
+        }
+        newPreviews[itemIndex] = { ...newPreviews[itemIndex], thumb: e.target.result };
+        return newPreviews;
+      });
+    };
+    reader.readAsDataURL(file);
+    trigger(`productItems[${itemIndex}].thumb`);
+  };
 
   const handleProductItemImageChange = (itemIndex, e) => {
-    clearErrors(`productItems[${itemIndex}].images`)
-    clearErrors("productItems")
-    const files = Array.from(e.target.files)
-    if (files.length > 0) {
-      const validTypes = ["image/png", "image/jpeg", "image/gif"]
-      const invalidFiles = files.filter((file) => !validTypes.includes(file.type) || file.size > 10 * 1024 * 1024)
-      if (invalidFiles.length > 0) {
-        setError(`productItems[${itemIndex}].images`, {
-          message: "Một số hình ảnh không hợp lệ (chỉ chấp nhận PNG, JPG, GIF, tối đa 10MB)",
-        })
-        return
-      }
-      const newImages = files.map((file) => ({ image: file, imageFileName: file.name }))
-      const currentImages = control._formValues.productItems[itemIndex].images || []
-      setValue(`productItems[${itemIndex}].images`, [...currentImages, ...newImages])
-      const previews = files.map((file) => {
-        const reader = new FileReader()
-        return new Promise((resolve) => {
-          reader.onload = (e) => resolve(e.target.result)
-          reader.readAsDataURL(file)
-        })
-      })
-      Promise.all(previews).then((results) => {
-        setProductItemsPreviews((prev) => {
-          const newPreviews = [...prev]
-          newPreviews[itemIndex] = {
-            ...newPreviews[itemIndex],
-            images: [...(newPreviews[itemIndex].images || []), ...results],
-          }
-          return newPreviews
-        })
-      })
+    clearErrors(`productItems[${itemIndex}].images`);
+    clearErrors('productItems');
+    const files = Array.from(e.target.files);
+    const currentImages = getValues(`productItems[${itemIndex}].images`) || [];
+    const currentPreviews = productItemsPreviews[itemIndex]?.images || [];
+
+    if (files.length === 0 && currentImages.length === 0) {
+      setError(`productItems[${itemIndex}].images`, {
+        message: 'Ít nhất một hình ảnh bổ sung là bắt buộc',
+      });
+      setProductItemsPreviews((prev) => {
+        const newPreviews = [...prev];
+        newPreviews[itemIndex] = { ...newPreviews[itemIndex], images: [] };
+        return newPreviews;
+      });
+      setValue(`productItems[${itemIndex}].images`, []);
+      trigger(`productItems[${itemIndex}].images`);
+      return;
     }
-  }
 
-  // const onSubmit = async (data) => {
-  //   // Validation logic tương tự như CreateProduct
-  //   if (!data.product.name) {
-  //     setError("product.name", { message: "Tên sản phẩm là bắt buộc" })
-  //     return
-  //   }
-  //   if (!data.product.description) {
-  //     setError("product.description", { message: "Mô tả là bắt buộc" })
-  //     return
-  //   }
-  //   if (!data.product.thumbUrl && !data.product.thumb) {
-  //     setError("product.thumb", { message: "Hình ảnh sản phẩm là bắt buộc" })
-  //     return
-  //   }
-  //   if (!data.product.brandId) {
-  //     setError("product.brandId", { message: "Thương hiệu là bắt buộc" })
-  //     return
-  //   }
-  //   if (!data.product.categoryId) {
-  //     setError("product.categoryId", { message: "Danh mục là bắt buộc" })
-  //     return
-  //   }
+    const validTypes = ['image/png', 'image/jpeg', 'image/gif'];
+    const invalidFiles = files.filter(
+      (file) => !validTypes.includes(file.type) || file.size > 10 * 1024 * 1024,
+    );
+    if (invalidFiles.length > 0) {
+      setError(`productItems[${itemIndex}].images`, {
+        message: 'Chỉ chấp nhận PNG, JPG, GIF, tối đa 10MB',
+      });
+      setProductItemsPreviews((prev) => {
+        const newPreviews = [...prev];
+        newPreviews[itemIndex] = { ...newPreviews[itemIndex], images: currentPreviews };
+        return newPreviews;
+      });
+      setValue(`productItems[${itemIndex}].images`, currentImages);
+      trigger(`productItems[${itemIndex}].images`);
+      return;
+    }
 
-  //   // Validation cho featured images
-  //   const hasExistingFeaturedImages = data.product.featuredImages.some(
-  //     (img) => typeof img.image === "string" && !featuredImagesDelete.includes(img.imageFileName),
-  //   )
-  //   const hasNewFeaturedImages = data.product.featuredImages.some((img) => typeof img.image === "object")
+    const updatedImages = [...currentImages, ...files];
+    setValue(`productItems[${itemIndex}].images`, updatedImages);
 
-  //   if (!hasExistingFeaturedImages && !hasNewFeaturedImages) {
-  //     setError("product.featuredImages", { message: "Ít nhất một hình ảnh nổi bật là bắt buộc" })
-  //     return
-  //   }
+    Promise.all(
+      files.map(
+        (file) =>
+          new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
+          }),
+      ),
+    ).then((results) => {
+      setProductItemsPreviews((prev) => {
+        const newPreviews = [...prev];
+        if (!newPreviews[itemIndex]) {
+          newPreviews[itemIndex] = { thumb: '', images: [] };
+        }
+        newPreviews[itemIndex] = {
+          ...newPreviews[itemIndex],
+          images: [...currentPreviews, ...results],
+        };
+        return newPreviews;
+      });
+    });
+    trigger(`productItems[${itemIndex}].images`);
+  };
 
-  //   // Validation cho product items
-  //   if (data.productItems.length === 0) {
-  //     setError("productItems", { message: "Ít nhất một mục sản phẩm là bắt buộc" })
-  //     return
-  //   }
+  const onSubmit = async (data) => {
+    console.log('Form data:', data);
+    let hasError = false;
 
-  //   // Validation chi tiết cho từng product item
-  //   for (let i = 0; i < data.productItems.length; i++) {
-  //     const item = data.productItems[i]
+    if (data.productItems.length === 0) {
+      setError('productItems', { message: 'Phải có ít nhất một mục sản phẩm' });
+      hasError = true;
+    }
 
-  //     if (!item.name) {
-  //       setError(`productItems[${i}].name`, { message: "Tên mục sản phẩm là bắt buộc" })
-  //       return
-  //     }
-  //     if (!item.barcode) {
-  //       setError(`productItems[${i}].barcode`, { message: "Barcode là bắt buộc" })
-  //       return
-  //     }
-  //     if (!item.thumbUrl && !item.thumb) {
-  //       setError(`productItems[${i}].thumb`, { message: "Hình ảnh mục sản phẩm là bắt buộc" })
-  //       return
-  //     }
+    data.productItems.forEach((item, index) => {
+      if (!item.thumb && !item.existingThumb) {
+        setError(`productItems[${index}].thumb`, {
+          type: 'required',
+          message: 'Hình ảnh chính là bắt buộc',
+        });
+        hasError = true;
+      }
+      if (!item.images || item.images.length === 0) {
+        setError(`productItems[${index}].images`, {
+          type: 'required',
+          message: 'Ít nhất một hình ảnh bổ sung là bắt buộc',
+        });
+        hasError = true;
+      }
+      if (item.promotions && item.promotions.length > 0) {
+        item.promotions.forEach((promo, promoIndex) => {
+          if (!promo.startDate) {
+            setError(`productItems[${index}].promotions[${promoIndex}].startDate`, {
+              type: 'required',
+              message: 'Thời gian bắt đầu là bắt buộc',
+            });
+            hasError = true;
+          }
+          if (!promo.endDate) {
+            setError(`productItems[${index}].promotions[${promoIndex}].endDate`, {
+              type: 'required',
+              message: 'Thời gian kết thúc là bắt buộc',
+            });
+            hasError = true;
+          }
+          if (!promo.discountPercent) {
+            setError(`productItems[${index}].promotions[${promoIndex}].discountPercent`, {
+              type: 'required',
+              message: 'Phần trăm giảm giá là bắt buộc',
+            });
+            hasError = true;
+          }
+          if (!promo.discountPrice) {
+            setError(`productItems[${index}].promotions[${promoIndex}].discountPrice`, {
+              type: 'required',
+              message: 'Giá sau giảm là bắt buộc',
+            });
+            hasError = true;
+          }
+        });
+      }
+    });
 
-  //     // Validation cho images của product item
-  //     const hasExistingImages = item.images.some(
-  //       (img) =>
-  //         typeof img.image === "string" &&
-  //         (!productItemImagesDelete[item._id] || !productItemImagesDelete[item._id].includes(img.imageFileName)),
-  //     )
-  //     const hasNewImages = item.images.some((img) => typeof img.image === "object")
+    if (!validateProductItemsAttributes()) {
+      hasError = true;
+    }
 
-  //     if (!hasExistingImages && !hasNewImages) {
-  //       setError(`productItems[${i}].images`, { message: "Ít nhất một hình ảnh bổ sung là bắt buộc" })
-  //       return
-  //     }
+    if (!data.product.name) {
+      setError('product.name', { type: 'required', message: 'Tên sản phẩm là bắt buộc' });
+      hasError = true;
+    }
+    if (!data.product.category_id) {
+      setError('product.category_id', { type: 'required', message: 'Danh mục là bắt buộc' });
+      hasError = true;
+    }
+    if (!data.product.brand_id) {
+      setError('product.brand_id', { type: 'required', message: 'Thương hiệu là bắt buộc' });
+      hasError = true;
+    }
+    if (
+      !data.product.description ||
+      data.product.description === '<p><br></p>' ||
+      data.product.description === ''
+    ) {
+      setError('product.description', { type: 'required', message: 'Mô tả là bắt buộc' });
+      hasError = true;
+    }
+    if (
+      !data.product.ingredient ||
+      data.product.ingredient === '<p><br></p>' ||
+      data.product.ingredient === ''
+    ) {
+      setError('product.ingredient', { type: 'required', message: 'Thành phần là bắt buộc' });
+      hasError = true;
+    }
+    if (
+      !data.product.instruction ||
+      data.product.instruction === '<p><br></p>' ||
+      data.product.instruction === ''
+    ) {
+      setError('product.instruction', { type: 'required', message: 'Hướng dẫn là bắt buộc' });
+      hasError = true;
+    }
+    if (!data.product.image && !data.product.existingImage) {
+      setError('product.image', { type: 'required', message: 'Hình ảnh sản phẩm là bắt buộc' });
+      hasError = true;
+    }
 
-  //     // Validation cho attributes
-  //     if (item.attributes.length === 0) {
-  //       setError(`productItems[${i}].attributes`, { message: "Ít nhất một thuộc tính là bắt buộc" })
-  //       return
-  //     }
+    if (hasError) {
+      console.log('Form errors:', errors);
+      return;
+    }
 
-  //     for (let j = 0; j < item.attributes.length; j++) {
-  //       if (!item.attributes[j].code) {
-  //         setError(`productItems[${i}].attributes[${j}].code`, { message: "Mã thuộc tính là bắt buộc" })
-  //         return
-  //       }
-  //       if (!item.attributes[j].value) {
-  //         setError(`productItems[${i}].attributes[${j}].value`, { message: "Giá trị thuộc tính là bắt buộc" })
-  //         return
-  //       }
-  //     }
+    setIsLoading(true);
+    setErrorMessage('');
 
-  //     // Validation cho giá
-  //     if (!item.retailPrice || isNaN(Number.parseFloat(item.retailPrice)) || Number.parseFloat(item.retailPrice) < 0) {
-  //       setError(`productItems[${i}].retailPrice`, { message: "Giá bán lẻ phải là số không âm" })
-  //       return
-  //     }
-  //     if (
-  //       !item.wholesalePrice ||
-  //       isNaN(Number.parseFloat(item.wholesalePrice)) ||
-  //       Number.parseFloat(item.wholesalePrice) < 0
-  //     ) {
-  //       setError(`productItems[${i}].wholesalePrice`, { message: "Giá nhập phải là số không âm" })
-  //       return
-  //     }
-  //     if (!item.supplier) {
-  //       setError(`productItems[${i}].supplier`, { message: "Nhà cung cấp là bắt buộc" })
-  //       return
-  //     }
-  //     if (!item.branch) {
-  //       setError(`productItems[${i}].branch`, { message: "Chi nhánh là bắt buộc" })
-  //       return
-  //     }
-  //   }
+    try {
+      const formData = new FormData();
 
-  //   try {
-  //     setIsLoading(true)
+      formData.append('id', productId);
+      formData.append('name', data.product.name);
+      formData.append('category_id', data.product.category_id);
+      formData.append('brand_id', data.product.brand_id);
+      formData.append('description', data.product.description);
+      formData.append('ingredient', data.product.ingredient);
+      formData.append('instruction', data.product.instruction);
 
-  //     // Loại bỏ _id từ specifications items
-  //     const cleanedSpecifications = data.product.specifications.map((spec) => ({
-  //       group: spec.group,
-  //       items: spec.items.map((item) => ({
-  //         label: item.label,
-  //         value: item.value,
-  //       })),
-  //     }))
+      if (data.product.image instanceof File) {
+        formData.append('image', data.product.image);
+      } else if (data.product.existingImage) {
+        formData.append('existingImage', data.product.existingImage);
+      }
 
-  //     // Add product data
-  //     const productData = {
-  //       name: data.product.name,
-  //       shortDescription: data.product.shortDescription,
-  //       description: data.product.description,
-  //       videoUrl: data.product.videoUrl || "",
-  //       specifications: cleanedSpecifications,
-  //       brandId: data.product.brandId,
-  //       categoryId: data.product.categoryId,
-  //       isActive: data.product.isActive,
-  //     }
+      data.productItems.forEach((item, index) => {
+        formData.append(`variants[${index}].id`, item.id || '');
+        formData.append(`variants[${index}].price`, item.price);
+        formData.append(`variants[${index}].stock`, item.stock);
 
-  //     // Tạo FormData
-  //     const formData = new FormData()
+        item.attributes.forEach((attr, attrIndex) => {
+          formData.append(`variants[${index}].attributes[${attrIndex}]`, attr.value);
+        });
 
-  //     // Add product data
+        if (item.promotions?.[0]) {
+          const promo = item.promotions[0];
+          formData.append(`variants[${index}].discount.percent`, promo.discountPercent);
+          formData.append(`variants[${index}].discount.start_day`, promo.startDate);
+          formData.append(`variants[${index}].discount.end_day`, promo.endDate);
+        }
 
-  //     formData.append("product", JSON.stringify(productData))
+        if (item.thumb instanceof File) {
+          formData.append(`variants[${index}].image`, item.thumb);
+        } else if (item.existingThumb) {
+          formData.append(`variants[${index}].existingImage`, item.existingThumb);
+        }
 
-  //     // Add product items data
-  //     const productItemsData = data.productItems.map((item) => ({
-  //       _id: item._id || undefined,
-  //       name: item.name.trim(),
-  //       barcode: item.barcode.trim(),
-  //       attributes: item.attributes.map((attr) => ({
-  //         code: attr.code.trim(),
-  //         value: attr.value.trim(),
-  //       })),
-  //       status: item.status || "inactive",
-  //       retailPrice: Number.parseFloat(item.retailPrice),
-  //       wholesalePrice: Number.parseFloat(item.wholesalePrice),
-  //       supplier: item.supplier,
-  //       branch: item.branch,
-  //       initialStock: 0, // Thêm initialStock mặc định
-  //     }))
+        if (Array.isArray(item.images)) {
+          item.images.forEach((img, imgIndex) => {
+            if (img instanceof File) {
+              formData.append(`variants[${index}].images`, img);
+            } else {
+              formData.append(`variants[${index}].existingImages[${imgIndex}]`, img);
+            }
+          });
+        }
+      });
 
-  //     formData.append("productItems", JSON.stringify(productItemsData))
+      for (const [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
 
-  //     // Add product thumbnail nếu có file mới
-  //     if (data.product.thumb) {
-  //       formData.append("thumbProduct", data.product.thumb)
-  //     }
+      await api.put(`/product/${productId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-  //     // Add featured images mới
-  //     const newFeaturedImages = data.product.featuredImages.filter((img) => typeof img.image === "object")
-  //     newFeaturedImages.forEach((img) => {
-  //       formData.append("featuredImages", img.image)
-  //     })
-
-  //     // Add product item thumbnails
-  //     data.productItems.forEach((item, index) => {
-  //       if (item.thumb) {
-  //         formData.append(`thumbProductItem[${index}]`, item.thumb)
-  //       }
-  //     })
-
-  //     // Add product item images mới
-  //     data.productItems.forEach((item, itemIndex) => {
-  //       const newImages = item.images.filter((img) => typeof img.image === "object")
-  //       newImages.forEach((img) => {
-  //         formData.append(`productItemImages[${itemIndex}]`, img.image)
-  //       })
-  //     })
-
-  //     // Luôn truyền featuredImagesDelete vào formData dưới dạng mảng
-  //     formData.append("featuredImagesDelete", JSON.stringify(featuredImagesDelete || []))
-
-  //     // Chuyển đổi productItemImagesDelete từ object sang mảng các string (tên file)
-  //     const productItemImagesDeleteArray = []
-  //     if (productItemImagesDelete && Object.keys(productItemImagesDelete).length > 0) {
-  //       for (const itemId in productItemImagesDelete) {
-  //         if (productItemImagesDelete[itemId] && productItemImagesDelete[itemId].length > 0) {
-  //           // Chỉ lấy tên file, không cần itemId
-  //           productItemImagesDeleteArray.push(...productItemImagesDelete[itemId])
-  //         }
-  //       }
-  //     }
-  //     formData.append("productItemImagesDelete", JSON.stringify(productItemImagesDeleteArray))
-
-  //     // Gửi request cập nhật
-  //     const response = await apis.apiUpdateProduct(productId, formData)
-  //     console.log("Response:", response)
-  //     window.history.back()
-  //   } catch (error) {
-  //     console.error("Error updating product:", error)
-  //     if (error.response?.data?.error?.includes("duplicate key")) {
-  //       if (error.response.data.error.includes("name")) {
-  //         setError("product.name", { message: "Tên sản phẩm đã tồn tại" })
-  //       } else {
-  //         data.productItems.forEach((item, index) => {
-  //           if (error.response.data.error.includes("name")) {
-  //             setError(`productItems[${index}].name`, { message: "Tên mục sản phẩm đã tồn tại" })
-  //           } else if (error.response.data.error.includes("barcode")) {
-  //             setError(`productItems[${index}].barcode`, { message: "Barcode đã tồn tại" })
-  //           }
-  //         })
-  //       }
-  //     } else {
-  //       setError("form", { message: "Có lỗi khi cập nhật sản phẩm. Vui lòng thử lại." })
-  //     }
-  //   } finally {
-  //     setIsLoading(false)
-  //   }
-  // }
-
-  if (isLoadingData) {
-    return (
-      <div className="p-3 sm:p-6 bg-gray-50 min-h-screen">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-          <span className="ml-2 text-gray-500">Đang tải dữ liệu...</span>
-        </div>
-      </div>
-    )
-  }
+      fetchProduct();
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công',
+        text: 'Cập nhật sản phẩm thành công!',
+        confirmButtonText: 'OK',
+      });
+    } catch (err) {
+      setErrorMessage(err.response?.data?.message || 'Lỗi khi cập nhật sản phẩm');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="p-3 sm:p-6 bg-gray-50 min-h-screen">
+      {errorMessage && (
+        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-sm">{errorMessage}</div>
+      )}
       <div className="mb-6">
         <button
           onClick={() => window.history.back()}
-          className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-sm hover:bg-gray-300 flex items-center cursor-pointer"
+          className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-sm hover:bg-gray-300 flex items-center"
+          disabled={isLoading}
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          QUẢN LÝ SẢN PHẨM
+          <ArrowLeft className="w-4 h-4 mr-2" /> QUẢN LÝ SẢN PHẨM
         </button>
       </div>
 
       <div className="bg-white rounded-sm shadow-md">
-        <div className="bg-[#00D5BE] text-white p-4 rounded-t-sm">
+        <div className="bg-[#00DDAF] text-white p-4 rounded-t-sm">
           <h2 className="text-lg font-semibold">CẬP NHẬT SẢN PHẨM</h2>
         </div>
 
         <div className="p-6">
-          <form 
-          // onSubmit={handleSubmit(onSubmit)}
-          >
+          <form onSubmit={handleSubmit(onSubmit)}>
             <h3 className="text-lg font-medium mb-4">Thông tin sản phẩm</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tên sản phẩm <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    {...register("product.name", { required: "Tên sản phẩm là bắt buộc" })}
-                    placeholder="Tên sản phẩm"
-                    className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.product?.name ? "border-red-600" : "border-gray-300"}`}
-                    disabled={isLoading}
-                  />
-                  {errors.product?.name && <p className="text-red-500 text-sm mt-1">{errors.product.name.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mô tả ngắn <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    {...register("product.shortDescription", { required: "Mô tả ngắn là bắt buộc" })}
-                    placeholder="Mô tả ngắn về sản phẩm"
-                    className={`w-full px-3 py-2 border rounded-sm ${errors.product?.shortDescription ? "border-red-600" : "border-gray-300"}`}
-                    disabled={isLoading}
-                  />
-                  {errors.product?.shortDescription && (
-                    <p className="text-red-500 text-sm mt-1">{errors.product.shortDescription.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mô tả <span className="text-red-500">*</span>
-                  </label>
-                  <MyEditor
-                    value={control._formValues.product.description}
-                    onChange={(data) => {
-                      setValue("product.description", data, { shouldValidate: true })
-                      if (data && data.trim()) {
-                        clearErrors("product.description")
-                      }
-                    }}
-                    disabled={isLoading}
-                    error={errors.product?.description}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">URL Video</label>
-                  <input
-                    type="text"
-                    {...register("product.videoUrl", {
-                      pattern: {
-                        value:
-                          /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|embed\/)|youtu\.be\/|vimeo\.com\/|.*\.(mp4|webm|ogg)).*$/i,
-                        message: "URL Video không hợp lệ (hỗ trợ YouTube, Vimeo, hoặc file video trực tiếp)",
-                      },
-                    })}
-                    placeholder="https://youtube.com/watch?v=... hoặc https://vimeo.com/..."
-                    className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.product?.videoUrl ? "border-red-600" : "border-gray-300"}`}
-                    disabled={isLoading}
-                  />
-                  {errors.product?.videoUrl && (
-                    <p className="text-red-500 text-sm mt-1">{errors.product.videoUrl.message}</p>
-                  )}
-
-                  {/* Video Preview */}
-                  {videoUrl && !errors.product?.videoUrl && (
-                    <div className="mt-3">
-                      <div className="flex items-center mb-2">
-                        <Play className="w-4 h-4 mr-2 text-blue-600" />
-                        <span className="text-sm font-medium text-gray-700">Xem trước video:</span>
-                      </div>
-                      <VideoPreview url={videoUrl} className="border rounded-sm overflow-hidden" />
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thương hiệu <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register("product.brandId", { required: "Thương hiệu là bắt buộc" })}
-                    className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.product?.brandId ? "border-red-600" : "border-gray-300"}`}
-                    disabled={isLoading || loadingOptions}
-                  >
-                    <option value="">{loadingOptions ? "Đang tải..." : "Chọn thương hiệu"}</option>
-                    {brands.map((brand) => (
-                      <option key={brand._id} value={brand._id}>
-                        {brand.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.product?.brandId && (
-                    <p className="text-red-500 text-sm mt-1">{errors.product.brandId.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Danh mục <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register("product.categoryId", { required: "Danh mục là bắt buộc" })}
-                    className={`w-full px-3 py-1 text-sm border rounded-sm ${errors.product?.categoryId ? "border-red-600" : "border-gray-300"}`}
-                    disabled={isLoading || loadingOptions}
-                  >
-                    <option value="">{loadingOptions ? "Đang tải..." : "Chọn danh mục"}</option>
-                    {categories.map((category) => (
-                      <option key={category._id} value={category._id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.product?.categoryId && (
-                    <p className="text-red-500 text-sm mt-1">{errors.product.categoryId.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      {...register("product.isActive")}
-                      className="h-4 w-4 text-blue-600 cursor-pointer"
-                      disabled={isLoading}
-                    />
-                    <span className="ml-2">Kích hoạt</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hình ảnh chính <span className="text-red-500">*</span>
+                    Hình ảnh sản phẩm <span className="text-red-500">*</span>
                   </label>
                   <div
-                    className={`border-2 border-dashed rounded-sm p-6 text-center ${errors.product?.thumb ? "border-red-600" : "border-gray-300"}`}
+                    className={`border-2 border-dashed rounded-sm p-6 text-center ${
+                      errors.product?.image ? 'border-red-600' : 'border-gray-300'
+                    }`}
                   >
-                    {thumbPreview ? (
+                    {productImagePreview ? (
                       <div className="relative">
                         <img
-                          src={thumbPreview || "/placeholder.svg"}
-                          alt="Thumbnail"
+                          src={productImagePreview}
+                          alt="Product Image"
                           className="mx-auto max-w-full max-h-48 object-contain rounded"
                         />
                         <button
                           type="button"
                           onClick={() => {
-                            setThumbPreview("")
-                            setValue("product.thumb", null)
-                            setValue("product.thumbUrl", "")
+                            setProductImagePreview('');
+                            setValue('product.image', null);
+                            setValue('product.existingImage', '');
+                            setError('product.image', {
+                              message: 'Hình ảnh sản phẩm là bắt buộc',
+                            });
+                            trigger('product.image');
                           }}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 cursor-pointer"
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                           disabled={isLoading}
                         >
                           <X className="w-4 h-4" />
@@ -1375,15 +1672,15 @@ const UpdateProduct = () => {
                     ) : (
                       <div>
                         <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                        <label htmlFor="thumb-upload" className="cursor-pointer">
+                        <label htmlFor="product-image" className="cursor-pointer">
                           <span className="bg-blue-500 text-white px-4 py-2 rounded-sm hover:bg-blue-600 inline-block">
                             Chọn ảnh
                           </span>
                           <input
-                            id="thumb-upload"
+                            id="product-image"
                             type="file"
                             accept="image/png,image/jpeg,image/gif"
-                            onChange={handleThumbChange}
+                            onChange={handleProductImageChange}
                             className="hidden"
                             disabled={isLoading}
                           />
@@ -1392,91 +1689,219 @@ const UpdateProduct = () => {
                       </div>
                     )}
                   </div>
-                  {errors.product?.thumb && <p className="text-red-500 text-sm mt-1">{errors.product.thumb.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hình ảnh nổi bật <span className="text-red-500">*</span>
-                  </label>
-                  <div
-                    className={`border-2 border-dashed rounded-sm p-6 text-center ${errors.product?.featuredImages ? "border-red-600" : "border-gray-300"}`}
-                  >
-                    <div className="mb-4">
-                      <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                      <label htmlFor="featured-images-upload" className="cursor-pointer">
-                        <span className="bg-blue-500 text-white px-4 py-2 rounded-sm hover:bg-blue-600 inline-block">
-                          Chọn nhiều ảnh
-                        </span>
-                        <input
-                          id="featured-images-upload"
-                          type="file"
-                          accept="image/png,image/jpeg,image/gif"
-                          multiple
-                          onChange={handleFeaturedImageChange}
-                          className="hidden"
-                          disabled={isLoading}
-                        />
-                      </label>
-                      <div className="text-gray-400 text-sm mt-2">PNG, JPG, GIF tối đa 10MB mỗi ảnh</div>
-                    </div>
-                    {featuredImagesPreviews.length > 0 && (
-                      <div className="grid grid-cols-2 gap-4">
-                        {featuredImagesPreviews.map(
-                          (preview, index) =>
-                            preview && (
-                              <div key={index} className="relative">
-                                <img
-                                  src={preview || "/placeholder.svg"}
-                                  alt={`Featured ${index}`}
-                                  className="mx-auto max-w-full max-h-48 object-contain rounded"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveFeaturedImage(index)}
-                                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 cursor-pointer"
-                                  disabled={isLoading}
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ),
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {errors.product?.featuredImages && (
-                    <p className="text-red-500 text-sm mt-1">{errors.product.featuredImages.message}</p>
+                  {errors.product?.image && (
+                    <p className="text-red-500 text-sm mt-1">{errors.product.image.message}</p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thông số kỹ thuật <span className="text-red-500">*</span>
+                    Tên sản phẩm <span className="text-red-500">*</span>
                   </label>
-                  {specificationsFields.map((field, index) => (
-                    <SpecificationGroup
-                      key={field.id}
-                      index={index}
-                      control={control}
-                      register={register}
-                      errors={errors}
-                      isLoading={isLoading}
-                      removeSpecification={removeSpecification}
-                      specificationsFields={specificationsFields}
-                    />
-                  ))}
-                  {errors.product?.specifications && (
-                    <p className="text-red-500 text-sm mt-1">{errors.product.specifications.message}</p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => appendSpecification({ group: "", items: [{ label: "", value: "" }] })}
-                    className="text-blue-500 hover:text-blue-600 flex items-center cursor-pointer"
+                  <input
+                    type="text"
+                    {...register('product.name', { required: 'Tên sản phẩm là bắt buộc' })}
+                    placeholder="Tên sản phẩm"
+                    className={`w-full px-3 py-1 text-sm border rounded-sm ${
+                      errors.product?.name ? 'border-red-600' : 'border-gray-300'
+                    }`}
                     disabled={isLoading}
-                  >
-                    <Plus className="w-4 h-4 mr-2" /> Thêm nhóm thông số
-                  </button>
+                    onChange={(e) => {
+                      register('product.name').onChange(e);
+                      trigger('product.name');
+                    }}
+                  />
+                  {errors.product?.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.product.name.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Thương hiệu <span className="text-red-500">*</span>
+                  </label>
+                  <Controller
+                    control={control}
+                    name="product.brand_id"
+                    rules={{ required: 'Thương hiệu là bắt buộc' }}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        options={brands}
+                        placeholder="Chọn thương hiệu"
+                        isDisabled={isLoading}
+                        onChange={(selected) => {
+                          field.onChange(selected ? selected.value : '');
+                          if (selected) clearErrors('product.brand_id');
+                          trigger('product.brand_id');
+                        }}
+                        value={brands.find((option) => option.value === field.value) || null}
+                        classNamePrefix="react-select"
+                        className={`react-select ${errors.product?.brand_id ? 'border-red-600' : ''}`}
+                      />
+                    )}
+                  />
+                  {errors.product?.brand_id && (
+                    <p className="text-red-500 text-sm mt-1">{errors.product.brand_id.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Danh mục <span className="text-red-500">*</span>
+                  </label>
+                  <Controller
+                    control={control}
+                    name="product.category_id"
+                    rules={{ required: 'Danh mục là bắt buộc' }}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        options={categories}
+                        placeholder="Chọn danh mục"
+                        isDisabled={isLoading}
+                        onChange={(selected) => {
+                          field.onChange(selected ? selected.value : '');
+                          if (selected) clearErrors('product.category_id');
+                          trigger('product.category_id');
+                        }}
+                        value={categories.find((option) => option.value === field.value) || null}
+                        classNamePrefix="react-select"
+                        className={errors.product?.category_id ? 'border-red-600' : ''}
+                      />
+                    )}
+                  />
+                  {errors.product?.category_id && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.product.category_id.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="mb-10">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mô tả <span className="text-red-500">*</span>
+                  </label>
+                  <Controller
+                    control={control}
+                    name="product.description"
+                    rules={{
+                      required: 'Mô tả là bắt buộc',
+                      validate: (value) =>
+                        (value && value.trim() && value !== '<p><br></p>' && value !== '') ||
+                        'Mô tả không được để trống',
+                    }}
+                    render={({ field }) => (
+                      <ReactQuill
+                        value={field.value || ''}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          if (value && value.trim() && value !== '<p><br></p>' && value !== '') {
+                            clearErrors('product.description');
+                          } else {
+                            setError('product.description', {
+                              message: 'Mô tả không được trống',
+                            });
+                          }
+                          trigger('product.description');
+                        }}
+                        modules={quillModules}
+                        formats={quillFormats}
+                        className={errors.product?.description ? 'border-red-600' : ''}
+                        readOnly={isLoading}
+                        style={quillEditorStyle}
+                      />
+                    )}
+                  />
+                  {errors.product?.description && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.product.description.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="mb-10">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Thành phần <span className="text-red-500">*</span>
+                  </label>
+                  <Controller
+                    control={control}
+                    name="product.ingredient"
+                    rules={{
+                      required: 'Thành phần là bắt buộc',
+                      validate: (value) =>
+                        (value && value.trim() && value !== '<p><br></p>' && value !== '') ||
+                        'Thành phần không được để trống',
+                    }}
+                    render={({ field }) => (
+                      <ReactQuill
+                        value={field.value || ''}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          if (value && value.trim() && value !== '<p><br></p>' && value !== '') {
+                            clearErrors('product.ingredient');
+                          } else {
+                            setError('product.ingredient', {
+                              message: 'Thành phần không được trống',
+                            });
+                          }
+                          trigger('product.ingredient');
+                        }}
+                        modules={quillModules}
+                        formats={quillFormats}
+                        className={errors.product?.ingredient ? 'border-red-600' : ''}
+                        readOnly={isLoading}
+                        style={quillEditorStyle}
+                      />
+                    )}
+                  />
+                  {errors.product?.ingredient && (
+                    <p className="text-red-500 text-sm mt-1">{errors.product.ingredient.message}</p>
+                  )}
+                </div>
+
+                <div className="mb-10">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 mt-[69px]">
+                    Hướng dẫn <span className="text-red-500">*</span>
+                  </label>
+                  <Controller
+                    control={control}
+                    name="product.instruction"
+                    rules={{
+                      required: 'Hướng dẫn là bắt buộc',
+                      validate: (value) =>
+                        (value && value.trim() && value !== '<p><br></p>' && value !== '') ||
+                        'Hướng dẫn không được để trống',
+                    }}
+                    render={({ field }) => (
+                      <ReactQuill
+                        value={field.value || ''}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          if (value && value.trim() && value !== '<p><br></p>' && value !== '') {
+                            clearErrors('product.instruction');
+                          } else {
+                            setError('product.instruction', {
+                              message: 'Hướng dẫn không được trống',
+                            });
+                          }
+                          trigger('product.instruction');
+                        }}
+                        modules={quillModules}
+                        formats={quillFormats}
+                        className={errors.product?.instruction ? 'border-red-600' : ''}
+                        readOnly={isLoading}
+                        style={quillEditorStyle}
+                      />
+                    )}
+                  />
+                  {errors.product?.instruction && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.product.instruction.message}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1484,7 +1909,7 @@ const UpdateProduct = () => {
             <h3 className="text-lg font-medium mt-8 mb-4">
               Mục sản phẩm <span className="text-red-500">*</span>
             </h3>
-            {errors.productItems && <p className="text-red-500 text-sm mb-4">{errors.productItems.message}</p>}
+
             {productItemsFields.map((item, itemIndex) => (
               <ProductItem
                 key={item.id}
@@ -1502,53 +1927,75 @@ const UpdateProduct = () => {
                 setError={setError}
                 clearErrors={clearErrors}
                 productItemsFields={productItemsFields}
-                suppliers={suppliers}
-                branches={branches}
-                featuredImagesDelete={featuredImagesDelete}
-                setFeaturedImagesDelete={setFeaturedImagesDelete}
-                productItemImagesDelete={productItemImagesDelete}
-                setProductItemImagesDelete={setProductItemImagesDelete}
+                attributeOptions={attributeOptions}
+                setAttributeOptions={setAttributeOptions}
+                setIsModalOpen={setIsModalOpen}
+                setIsUpdateValueModalOpen={setIsUpdateValueModalOpen}
+                appendAttributeToAllItems={appendAttributeToAllItems}
+                removeAttributeFromAllItems={removeAttributeFromAllItems}
+                fetchProduct={fetchProduct}
+                trigger={trigger}
+                hasInitialPromotion={!!variantResponse?.[itemIndex]?.percent}
+                variant={variantResponse?.[itemIndex]}
               />
             ))}
             <button
               type="button"
               onClick={() => {
+                const firstItemAttributes = getValues('productItems[0].attributes') || [];
                 appendProductItem({
-                  name: "",
-                  barcode: "",
+                  price: '',
                   thumb: null,
-                  thumbUrl: "",
+                  existingThumb: '',
                   images: [],
-                  attributes: [{ code: "", value: "" }],
-                  status: "inactive",
-                  retailPrice: "",
-                  wholesalePrice: "",
-                  supplier: "",
-                  branch: "",
-                })
-                setProductItemsPreviews((prev) => [...prev, { thumb: "", images: [] }])
-                clearErrors("productItems")
+                  stock: '',
+                  attributes: firstItemAttributes.map((attr) => ({ code: attr.code, value: '' })),
+                  promotions: [],
+                });
+                setProductItemsPreviews((prev) => [...prev, { thumb: '', images: [] }]);
+                clearErrors('productItems');
+                trigger(`productItems[${productItemsFields.length}]`);
               }}
-              className="text-blue-500 hover:text-blue-600 flex items-center mb-6 cursor-pointer"
+              className="text-blue-500 hover:text-blue-600 flex items-center mb-6"
               disabled={isLoading}
             >
               <Plus className="w-4 h-4 mr-2" /> Thêm mục sản phẩm
             </button>
+            {errors.productItems && (
+              <p className="text-red-500 text-sm mb-4">{errors.productItems.message}</p>
+            )}
 
-            {errors.form && <p className="text-red-500 text-sm mt-4">{errors.form.message}</p>}
+            <AddAttributeModal
+              isOpen={isModalOpen}
+              onRequestClose={() => setIsModalOpen(false)}
+              isLoading={isLoading}
+              setIsLoading={setIsLoading}
+              setErrorMessage={setErrorMessage}
+              attributeOptions={attributeOptions}
+              fetchAttributes={fetchAttributes}
+            />
+            <UpdateAttributeValueModal
+              isOpen={isUpdateValueModalOpen}
+              onRequestClose={() => setIsUpdateValueModalOpen(false)}
+              isLoading={isLoading}
+              setIsLoading={setIsLoading}
+              setErrorMessage={setErrorMessage}
+              attributeOptions={attributeOptions}
+              fetchAttributes={fetchAttributes}
+            />
 
-            <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+            <div className="flex justify-end space-x-3 mt-8 pt-6 border-t">
               <button
                 type="button"
                 onClick={() => window.history.back()}
-                className="px-6 py-2 bg-gray-500 text-white rounded-sm hover:bg-gray-600 cursor-pointer"
+                className="px-4 py-2 bg-gray-500 text-white rounded-sm hover:bg-gray-600"
                 disabled={isLoading}
               >
                 Hủy
               </button>
               <button
                 type="submit"
-                className="px-6 py-2 bg-pink-500 text-white rounded-sm hover:bg-pink-600 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-500 text-white rounded-sm hover:bg-blue-600 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -1558,8 +2005,7 @@ const UpdateProduct = () => {
                   </>
                 ) : (
                   <>
-                    <Edit className="w-4 h-4 mr-2" />
-                    CẬP NHẬT
+                    <Plus className="w-4 h-4 mr-2" /> CẬP NHẬT
                   </>
                 )}
               </button>
@@ -1568,7 +2014,7 @@ const UpdateProduct = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default UpdateProduct
+export default UpdateProduct;

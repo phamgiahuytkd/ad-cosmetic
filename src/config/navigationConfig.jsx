@@ -1,12 +1,10 @@
-import {
-  Users, Package, BarChart2, FileText, Truck, ShoppingCart
-} from 'lucide-react';
+import { Users, Package, BarChart2, FileText, ShoppingCart, Gift } from 'lucide-react';
 
 export const navigationItems = [
   {
     icon: BarChart2,
     label: 'Tổng quan',
-    path: '/dashboard'
+    path: '/dashboard',
   },
   {
     icon: Package,
@@ -15,23 +13,28 @@ export const navigationItems = [
     subitems: [
       { label: 'Quản lý thương hiệu', path: '/products/brand-management' },
       { label: 'Quản lý danh mục', path: '/products/category-management' },
-      { label: 'Quản lý sản phẩm', path: '/products/product-management' }
-    ]
+      { label: 'Quản lý sản phẩm', path: '/products/product-management' },
+    ],
   },
   {
     icon: ShoppingCart,
     label: 'Đơn hàng',
-    path: '/orders'
+    path: '/orders',
   },
   {
     icon: Users,
     label: 'Khách hàng',
-    path: '/customers'
+    path: '/customers',
   },
   {
     icon: FileText,
     label: 'Quản lý kho',
-    path: '/warehouse'
+    path: '/warehouse',
+  },
+  {
+    icon: Gift,
+    label: 'Quản lý quà tặng',
+    path: '/gifts',
   },
 ];
 
@@ -39,15 +42,14 @@ export const createRouteTitleMap = (items) => {
   const routeMap = {
     '/': 'Tổng quan',
     '/dashboard': 'Tổng quan',
-
   };
 
   const addRoutes = (items) => {
-    items.forEach(item => {
+    items.forEach((item) => {
       routeMap[item.path] = item.label;
 
       if (item.subitems) {
-        item.subitems.forEach(subitem => {
+        item.subitems.forEach((subitem) => {
           routeMap[subitem.path] = subitem.label;
 
           // Thêm route động nếu cần

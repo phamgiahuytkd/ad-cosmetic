@@ -1,13 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Dashboard, Category, Brand, Order, Product, Warehouse, Customer, Login } from './pages';
-import { Header, Sidebar, CreateCategory, CreateBrand, UpdateCategory, UpdateBrand, CreateProduct, UpdateProduct } from './components';
+import {
+  Header,
+  Sidebar,
+  CreateCategory,
+  CreateBrand,
+  UpdateCategory,
+  UpdateBrand,
+  CreateProduct,
+  UpdateProduct,
+} from './components';
 import { routeTitleMap } from './config/navigationConfig';
 import { ToastContainer } from 'react-toastify';
 import { jwtDecode } from 'jwt-decode';
+import OrderDetail from './pages/Order/OrderDetail';
+import GiftManagement from './pages/Gift/Gift';
+import AddGift from './pages/Gift/AddGift';
 
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem('token');
   let role = null;
 
   try {
@@ -16,17 +28,17 @@ const ProtectedRoute = ({ children }) => {
       role = decodedToken.scope;
     }
   } catch (e) {
-    console.error("Invalid token");
-    localStorage.removeItem("token");
+    console.error('Invalid token:', e);
+    localStorage.removeItem('token');
   }
 
-  if (role !== "ADMIN") {
+  if (role !== 'ADMIN') {
+    console.warn('Access denied: User role is not ADMIN, redirecting to /login');
     return <Navigate to="/login" replace />;
   }
 
   return children;
 };
-
 
 const App = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -37,17 +49,19 @@ const App = () => {
 
   useEffect(() => {
     if (!isLoginPage) {
-      const matchedPath = Object.keys(routeTitleMap).find((path) =>
-        location.pathname === path || location.pathname.startsWith(path + '/')
-      ) || '/';
+      const matchedPath =
+        Object.keys(routeTitleMap).find(
+          (path) => location.pathname === path || location.pathname.startsWith(path + '/'),
+        ) || '/';
 
       const title = routeTitleMap[matchedPath] || 'Dashboard';
 
       setCurrentPage({
         path: location.pathname,
-        title: title
+        title: title,
       });
     }
+    console.log('Current path:', location.pathname); // Debug route
   }, [location.pathname, isLoginPage]);
 
   return (
@@ -75,11 +89,7 @@ const App = () => {
 
               <main className="flex-1 overflow-y-auto bg-gray-50">
                 <Routes>
-                  <Route
-                    path="/"
-                    exact={true}
-                    element={<Navigate to="/dashboard" />}
-                  />
+                  <Route path="/" exact={true} element={<Navigate to="/dashboard" />} />
                   <Route
                     path="/dashboard"
                     exact={true}
@@ -170,6 +180,14 @@ const App = () => {
                     }
                   />
                   <Route
+                    path="/orders/view/:id"
+                    element={
+                      <ProtectedRoute>
+                        <OrderDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/customers"
                     element={
                       <ProtectedRoute>
@@ -182,6 +200,22 @@ const App = () => {
                     element={
                       <ProtectedRoute>
                         <Warehouse />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/gifts"
+                    element={
+                      <ProtectedRoute>
+                        <GiftManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/add-gift"
+                    element={
+                      <ProtectedRoute>
+                        <AddGift />
                       </ProtectedRoute>
                     }
                   />

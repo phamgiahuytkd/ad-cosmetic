@@ -5,12 +5,7 @@ import { ArrowLeft, Plus, Upload, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 import api from '../../service/api';
-
-const getImageUrl = (imageName) => {
-  if (!imageName) return '';
-  if (/^https?:\/\//.test(imageName) || imageName.startsWith('data:image')) return imageName;
-  return `http://localhost:8080/iCommerce/images/${imageName}`;
-};
+import { getImageUrl } from '../../common/commonFunc';
 
 const UpdateCategory = () => {
   const { categoryId } = useParams();

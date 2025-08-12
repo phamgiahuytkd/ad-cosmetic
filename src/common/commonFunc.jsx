@@ -1,14 +1,13 @@
-import { toast } from "react-toastify";
-import api from "../service/api";
-import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
-import { jwtDecode } from "jwt-decode";
+import { toast } from 'react-toastify';
+import api from '../service/api';
+import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
+import { jwtDecode } from 'jwt-decode';
 // import BuyNow from "../page/BuyNow";
-
 
 // hàm lấy ảnh
 export const getImageUrl = (imageName) => {
-  if (!imageName) return ""; // Xử lý trường hợp imageName rỗng hoặc null
+  if (!imageName) return ''; // Xử lý trường hợp imageName rỗng hoặc null
   // Kiểm tra nếu imageName bắt đầu bằng http:// hoặc https://
   if (/^https?:\/\//.test(imageName)) {
     return imageName; // Trả về URL nguyên vẹn nếu đã là URL
@@ -18,46 +17,44 @@ export const getImageUrl = (imageName) => {
 };
 
 // hàm chuyển tiền
-export const formatPrice = (price) => price && (price.toLocaleString("vi-VN") + "₫");
-
+export const formatPrice = (price) => price && price.toLocaleString('vi-VN') + '₫';
 
 // hàm định dạng ngày
 export const formatDateTimeVN = (inputDate) => {
-  if (!inputDate) return "";
+  if (!inputDate) return '';
 
   const date = new Date(inputDate);
 
-  const timePart = date.toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
+  const timePart = date.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
     hour12: false,
   });
 
-  const datePart = date.toLocaleDateString("vi-VN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+  const datePart = date.toLocaleDateString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   });
 
   return `${timePart} - ${datePart}`;
 };
 
-
 //hàm in hoa hết chữ
 export const toUpperCase = (str) => {
-  return str ? str.toUpperCase() : "";
+  return str ? str.toUpperCase() : '';
 };
 
 //hàm định dạng số lượng
 export function formatStockNumber(num) {
   if (num < 1000) return num.toString();
-  if (num === 1000) return "1k";
-  return "1k+";
+  if (num === 1000) return '1k';
+  return '1k+';
 }
 
 //hàm chuyển linnk poster
 export const redirectTo = (url) => {
-  if (!url || typeof url !== "string") return;
+  if (!url || typeof url !== 'string') return;
 
   // Kiểm tra nếu là URL hợp lệ (bắt đầu bằng http hoặc https)
   if (/^https?:\/\//i.test(url)) {
@@ -84,20 +81,20 @@ export const handleAddToLove = (e, product, fetchFavorites, navigate) => {
   if (e) e.stopPropagation();
 
   api
-    .post("/product/loveproduct", {
+    .post('/product/loveproduct', {
       product_id: product.id,
     })
     .then(() => {
-      toast.success("💖 Đã thêm sản phẩm vào danh mục yêu thích!");
+      toast.success('💖 Đã thêm sản phẩm vào danh mục yêu thích!');
       fetchFavorites();
     })
     .catch((err) => {
       if (err.response?.status === 401) {
         RequireLoginAlert(navigate);
       } else if (err.response?.data.code === 3001) {
-        toast.info("Sản phẩm đã tồn tại trong danh mục yêu thích!");
+        toast.info('Sản phẩm đã tồn tại trong danh mục yêu thích!');
       } else {
-        toast.error("Lỗi thêm vào danh mục yêu thích!");
+        toast.error('Lỗi thêm vào danh mục yêu thích!');
       }
     });
 };
@@ -107,22 +104,22 @@ export const handleRemoveToLove = (e, product, fetchFavorites, navigate) => {
   if (e) e.stopPropagation();
 
   api
-    .delete("/product/loveproduct", {
+    .delete('/product/loveproduct', {
       data: {
         product_id: product.id,
       },
     })
     .then(() => {
-      toast.success("💔 Đã xóa sản phẩm khỏi danh mục yêu thích!");
+      toast.success('💔 Đã xóa sản phẩm khỏi danh mục yêu thích!');
       fetchFavorites();
     })
     .catch((err) => {
       if (err.response?.status === 401) {
         RequireLoginAlert(navigate);
       } else if (err.response?.data.code === 3002) {
-        toast.info("Sản phẩm đã bị xóa khỏi danh mục yêu thích!");
+        toast.info('Sản phẩm đã bị xóa khỏi danh mục yêu thích!');
       } else {
-        toast.error("Lỗi xóa khỏi danh mục yêu thích!");
+        toast.error('Lỗi xóa khỏi danh mục yêu thích!');
       }
     });
 };
@@ -138,10 +135,10 @@ export const handleAddToCart = (
   fetchCart,
   navigate,
   setOpenAddAndBuyNowModal,
-  setAddAndBuyNowProduct
+  setAddAndBuyNowProduct,
 ) => {
   if (e) e.stopPropagation();
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem('token');
   let role = null;
   try {
     if (token && token !== undefined) {
@@ -149,11 +146,11 @@ export const handleAddToCart = (
       role = decodedToken.scope;
     }
   } catch (e) {
-    localStorage.removeItem("token");
-    toast.error("Lỗi thêm sản phẩm vào giỏ hàng!");
+    localStorage.removeItem('token');
+    toast.error('Lỗi thêm sản phẩm vào giỏ hàng!');
   }
 
-  if (role === "USER" || role === "ADMIN") {
+  if (role === 'USER' || role === 'ADMIN') {
     api
       .get(`/product-variant/${product.id}`)
       .then((response) => {
@@ -164,32 +161,30 @@ export const handleAddToCart = (
         }
 
         api
-          .post("/cart", {
+          .post('/cart', {
             product_variant_id: response.data.result[0].id,
             quantity: 1,
           })
           .then(() => {
-            toast.success("🛒 Đã thêm sản phẩm vào giỏ hàng!");
+            toast.success('🛒 Đã thêm sản phẩm vào giỏ hàng!');
             fetchCart(); // gọi lại nếu có
           })
           .catch((err) => {
             if (err.response?.data.code === 3012) {
-              toast.info("Sản phẩm không đủ số lượng!");
+              toast.info('Sản phẩm không đủ số lượng!');
             } else {
-              toast.error("Lỗi thêm vào giỏ hàng!");
+              toast.error('Lỗi thêm vào giỏ hàng!');
             }
           });
 
         // Dừng trạng thái tải
       })
       .catch((error) => {
-        console.error(error.response?.data?.message || "Lỗi không xác định");
+        console.error(error.response?.data?.message || 'Lỗi không xác định');
       });
   } else {
     RequireLoginAlert(navigate);
   }
-
-  
 };
 
 ///////// mua ngay ////////
@@ -201,9 +196,9 @@ export const setBuyNow = (
   navigate,
   setOpenAddAndBuyNowModal,
   setAddAndBuyNowProduct,
-  setOpenLoveModal
+  setOpenLoveModal,
 ) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem('token');
   let role = null;
   try {
     if (token && token !== undefined) {
@@ -211,11 +206,11 @@ export const setBuyNow = (
       role = decodedToken.scope;
     }
   } catch (e) {
-    localStorage.removeItem("token");
-    toast.error("Lỗi mua ngay!");
+    localStorage.removeItem('token');
+    toast.error('Lỗi mua ngay!');
   }
   if (e) e.stopPropagation();
-  if (role === "USER" || role === "ADMIN") {
+  if (role === 'USER' || role === 'ADMIN') {
     api
       .get(`/product-variant/${product.id}`)
       .then((response) => {
@@ -231,13 +226,13 @@ export const setBuyNow = (
         setOpenLoveModal(false);
         const product_variant = response.data.result[0];
         const data = { ...product, product_variant, quantity }; // gộp tất cả thông tin sản phẩm + số lượng
-        sessionStorage.setItem("buyNowData", JSON.stringify(data));
-        navigate("/buynow");
+        sessionStorage.setItem('buyNowData', JSON.stringify(data));
+        navigate('/buynow');
 
         // Dừng trạng thái tải
       })
       .catch((error) => {
-        console.error(error.response?.data?.message || "Lỗi không xác định");
+        console.error(error.response?.data?.message || 'Lỗi không xác định');
       });
   } else {
     RequireLoginAlert(navigate);
@@ -246,54 +241,52 @@ export const setBuyNow = (
 
 // Lấy dữ liệu "Mua ngay" từ sessionStorage
 export const getBuyNow = () => {
-  const stored = sessionStorage.getItem("buyNowData");
+  const stored = sessionStorage.getItem('buyNowData');
   return stored ? JSON.parse(stored) : null;
 };
 
 // Xóa dữ liệu "Mua ngay" sau khi thanh toán xong
 export const clearBuyNow = () => {
-  sessionStorage.removeItem("buyNowData");
+  sessionStorage.removeItem('buyNowData');
 };
 
 ///////////////////////////////////////////////////
 
 //Thông báo mời đăng nhập
 
-export const RequireLoginAlert = (navigate, to = "/auth/login") => {
+export const RequireLoginAlert = (navigate, to = '/auth/login') => {
   Swal.fire({
-    title: "<strong> Bạn chưa đăng nhập</strong>",
-    html: "Vui lòng đăng nhập để sử dụng tính năng này.",
-    icon: "warning",
+    title: '<strong> Bạn chưa đăng nhập</strong>',
+    html: 'Vui lòng đăng nhập để sử dụng tính năng này.',
+    icon: 'warning',
     showCancelButton: true,
-    confirmButtonText: "Đăng nhập",
-    cancelButtonText: "Không",
-    background: "white",
-    color: "#333",
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#d33",
+    confirmButtonText: 'Đăng nhập',
+    cancelButtonText: 'Không',
+    background: 'white',
+    color: '#333',
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
   }).then((result) => {
-    if (result.isConfirmed && typeof navigate === "function") {
+    if (result.isConfirmed && typeof navigate === 'function') {
       navigate(to);
     }
   });
 };
 
-
-
 //Thông báo đăng xuất
 export const handleLogoutConfirm = () => {
   Swal.fire({
-    title: "Bạn có chắc muốn đăng xuất?",
-    text: "Phiên làm việc của bạn sẽ kết thúc.",
-    icon: "warning",
+    title: 'Bạn có chắc muốn đăng xuất?',
+    text: 'Phiên làm việc của bạn sẽ kết thúc.',
+    icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    confirmButtonText: "Đăng xuất",
-    cancelButtonText: "Hủy",
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Đăng xuất',
+    cancelButtonText: 'Hủy',
   }).then((result) => {
     if (result.isConfirmed) {
-      window.location.href = "/logout"; // chuyển trang
+      window.location.href = '/logout'; // chuyển trang
     }
   });
 };

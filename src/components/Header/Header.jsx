@@ -11,7 +11,7 @@ import {
   Package,
   Users,
   X,
-  Menu
+  Menu,
 } from 'lucide-react';
 import api from '../../service/api';
 
@@ -33,7 +33,7 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
       message: '5 đơn hàng mới cần xử lý',
       count: 5,
       time: '2 phút trước',
-      isRead: false
+      isRead: false,
     },
     {
       id: 2,
@@ -42,7 +42,7 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
       message: '3 sản phẩm sắp hết hàng',
       count: 3,
       time: '10 phút trước',
-      isRead: false
+      isRead: false,
     },
     {
       id: 3,
@@ -51,11 +51,11 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
       message: '2 khách hàng mới đăng ký',
       count: 2,
       time: '1 giờ trước',
-      isRead: true
-    }
+      isRead: true,
+    },
   ]);
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   // useEffect(() => {
   //   const fetchUser = async () => {
@@ -115,32 +115,29 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
   };
 
   const handleLogout = async () => {
-    const token = localStorage.getItem("token");
-    api.post("/auth/logout", { token })
-          .then(response => {
-            localStorage.setItem("token", response.data.result.token); // Lưu token vào localStorage  
-            navigate('/login');
-            localStorage.removeItem("token");
-          })
-          .catch(error => {
-            alert(error.response.data.message);
-          });
+    const token = localStorage.getItem('token');
+    api
+      .post('/auth/logout', { token })
+      .then((response) => {
+        localStorage.setItem('token', response.data.result.token); // Lưu token vào localStorage
+        navigate('/login');
+        localStorage.removeItem('token');
+      })
+      .catch((error) => {
+        alert(error.response.data.message);
+      });
   };
 
   const markAsRead = (id) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === id
-          ? { ...notification, isRead: true }
-          : notification
-      )
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === id ? { ...notification, isRead: true } : notification,
+      ),
     );
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, isRead: true }))
-    );
+    setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })));
   };
 
   const getNotificationIcon = (type) => {
@@ -229,7 +226,9 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <h4 className={`text-sm font-medium ${!notification.isRead ? 'text-gray-900' : 'text-gray-700'}`}>
+                              <h4
+                                className={`text-sm font-medium ${!notification.isRead ? 'text-gray-900' : 'text-gray-700'}`}
+                              >
                                 {notification.title}
                               </h4>
                               {notification.count > 0 && (
@@ -238,12 +237,12 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                                 </span>
                               )}
                             </div>
-                            <p className={`text-sm mt-1 ${!notification.isRead ? 'text-gray-600' : 'text-gray-500'}`}>
+                            <p
+                              className={`text-sm mt-1 ${!notification.isRead ? 'text-gray-600' : 'text-gray-500'}`}
+                            >
                               {notification.message}
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {notification.time}
-                            </p>
+                            <p className="text-xs text-gray-400 mt-1">{notification.time}</p>
                           </div>
                           {!notification.isRead && (
                             <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
@@ -284,7 +283,9 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
               ) : (
                 <span className="hidden md:block text-sm text-gray-700">{fullName}</span>
               )}
-              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+              />
             </div>
 
             {isDropdownOpen && (
