@@ -133,7 +133,7 @@ const OrderDetail = () => {
         'Transaction Date': order.date,
         'Transaction Amount': order.amount / 25228 || 0,
         'Payment Method': order.payment || 'unknown',
-        'Device Used': 'unknown', // Giả định không có thông tin thiết bị
+        'Device Used': order.payment, // Giả định không có thông tin thiết bị
         'Transaction Hour': order.date ? new Date(order.date).getHours() : 0,
         Quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0) || 1,
       };
