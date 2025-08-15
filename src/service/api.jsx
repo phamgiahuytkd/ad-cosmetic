@@ -4,7 +4,7 @@ import {jwtDecode} from "jwt-decode";
 
 // Cấu hình cơ bản cho axios
 const api = axios.create({
-  baseURL: "https://icommerce-production.up.railway.app", // Địa chỉ của backend
+  baseURL: "https://icommerce-production.up.railway.app/iCommerce", // Địa chỉ của backend
   headers: {
     "Content-Type": "application/json",
   },
