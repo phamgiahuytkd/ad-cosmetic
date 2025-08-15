@@ -13,7 +13,7 @@ export const getImageUrl = (imageName) => {
     return imageName; // Trả về URL nguyên vẹn nếu đã là URL
   }
   // Nếu không, thêm base URL
-  return `http://localhost:8080/iCommerce/images/${imageName}`;
+  return `https://icommerce-production.up.railway.app/iCommerce/images/${imageName}`;
 };
 
 // hàm chuyển tiền

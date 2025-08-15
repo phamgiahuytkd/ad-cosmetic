@@ -45,7 +45,7 @@ api.interceptors.request.use(async (config) => {
         isRefreshing = true;
 
         try {
-          const response = await axios.post("http://localhost:8080/iCommerce/auth/refresh", {
+          const response = await axios.post("https://icommerce-production.up.railway.app/iCommerce/auth/refresh", {
             token: token,
           });
 
