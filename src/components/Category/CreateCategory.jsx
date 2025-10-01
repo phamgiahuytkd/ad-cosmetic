@@ -115,11 +115,11 @@ const CreateCategory = () => {
   };
 
   return (
-    <div className="p-3 sm:p-6 bg-gray-50 min-h-screen">
+    <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
       <div className="mb-6">
         <button
           onClick={() => window.history.back()}
-          className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-sm hover:bg-gray-300 flex items-center cursor-pointer"
+          className="shadow-md px-4 py-2 text-sm bg-rose-50 text-gray-700 rounded-sm hover:bg-rose-100 flex items-center cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           QUẢN LÝ DANH MỤC
@@ -127,7 +127,7 @@ const CreateCategory = () => {
       </div>
 
       <div className="bg-white rounded-sm shadow-md">
-        <div className="bg-[#00D5BE] text-white p-4 rounded-t-sm">
+        <div className="bg-[var(--color-title)] text-white p-4 rounded-t-sm">
           <h2 className="text-lg font-semibold">THÊM DANH MỤC</h2>
         </div>
 

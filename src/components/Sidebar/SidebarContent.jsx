@@ -13,13 +13,13 @@ const SidebarContent = ({
   return (
     <>
       {/* Logo */}
-      <div className="p-4">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-teal-400 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">U</span>
+      <div className="pb-0 p-4">
+        <div className="flex justify-center items-center space-x-2 bg-white p-2 rounded-md">
+          <div className="w-8 h-8 bg-[#0D1164] rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">H2</span>
           </div>
           {!isCollapsed && (
-            <span className="font-semibold text-gray-800">upos</span>
+            <span className="font-semibold text-[#0D1164]">Cosmetic</span>
           )}
         </div>
       </div>
@@ -28,14 +28,14 @@ const SidebarContent = ({
       <div className="p-4 flex-1 overflow-y-auto scrollbar-hide">
         <div className="space-y-6">
           {/* Main Menu */}
-          <div className="space-y-1">
+          <div className="space-y-1 text-[#0D1164] font-semibold">
             {sidebarItems.map((item, index) => (
               <div key={index}>
                 {item.subitems ? (
                   <div>
                     <div
                       onClick={() => !isCollapsed && toggleExpanded(index)}
-                      className={`flex items-center px-3 py-2 rounded-lg text-sm cursor-pointer text-gray-600 hover:bg-gray-50 ${
+                      className={`flex items-center px-3 py-2 rounded-lg text-sm cursor-pointer hover:bg-gray-50 ${
                         isCollapsed ? 'justify-center' : ''
                       }`}
                       title={isCollapsed ? item.label : ''}
@@ -63,10 +63,10 @@ const SidebarContent = ({
                               to={subitem.path}
                               onClick={handleMenuItemClick}
                               className={({ isActive }) =>
-                                `px-3 py-1 text-sm rounded cursor-pointer block transition-colors w-full text-left ${
+                                `px-3 py-1 text-sm rounded cursor-pointer block transition-colors w-full text-left font-normal ${
                                   isActive 
-                                    ? 'text-teal-600 bg-teal-50' 
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                    ? 'bg-teal-50' 
+                                    : 'hover:text-gray-700 hover:bg-gray-50'
                                 }`
                               }
                             >
@@ -86,8 +86,8 @@ const SidebarContent = ({
                         isCollapsed ? 'justify-center' : ''
                       } ${
                         isActive 
-                          ? 'text-teal-600 bg-teal-50' 
-                          : 'text-gray-600 hover:bg-gray-50'
+                          ? 'bg-teal-50' 
+                          : 'hover:bg-gray-50'
                       }`
                     }
                     title={isCollapsed ? item.label : ''}

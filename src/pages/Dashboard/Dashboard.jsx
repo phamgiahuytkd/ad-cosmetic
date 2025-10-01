@@ -34,7 +34,16 @@ ChartJS.register(
 // Đặt app element cho accessibility
 Modal.setAppElement('#root');
 
-// Dữ liệu ảo
+// Hàm định dạng ngày thành YYYY-MM-DD
+const formatDateToYYYYMMDD = (dateString) => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  if (isNaN(date)) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -50,26 +59,48 @@ const Dashboard = () => {
     lowStockProducts: [],
     giftStats: [],
     categoryRevenue: [],
+    brandRevenue: [],
     revenueData: [],
   });
-  const [timeFilter, setTimeFilter] = useState('WEEK');
+  const [timeFilter, setTimeFilter] = useState('DAY');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Mặc định ngày hiện tại
 
-  // Sử dụng dữ liệu ảo
+  // Hàm lấy thống kê
   const fetchStats = async () => {
     try {
+      // Kiểm tra và định dạng ngày
+      const formattedDate = formatDateToYYYYMMDD(selectedDate);
+      if (!formattedDate) {
+        setError('Vui lòng chọn một ngày hợp lệ');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError('');
-      const response1 = await api.get(`/statistical/overview/${timeFilter}`);
+      const response1 = await api.get(`/statistical/overview/${timeFilter}/${formattedDate}`);
       const overview = response1.data.result;
-      const response2 = await api.get(`/statistical/revenue-by-category/${timeFilter}`);
+      const response2 = await api.get(
+        `/statistical/revenue-by-category/${timeFilter}/${formattedDate}`,
+      );
       const revenueByCategory = response2.data.result;
-      const response3 = await api.get(`/statistical/revenue-by-date/${timeFilter}`);
+      const response_brand = await api.get(
+        `/statistical/revenue-by-brand/${timeFilter}/${formattedDate}`,
+      );
+      const revenueByBrand = response_brand.data.result;
+      const response3 = await api.get(
+        `/statistical/revenue-by-date/${timeFilter}/${formattedDate}`,
+      );
       const revenueByDate = response3.data.result;
-      const response4 = await api.get(`/statistical/top-selling-product/${timeFilter}`);
+      const response4 = await api.get(
+        `/statistical/top-selling-product/${timeFilter}/${formattedDate}`,
+      );
       const topProducts = response4.data.result;
       const response5 = await api.get('/statistical/lowest-stock');
       const lowestStockProductVariant = response5.data.result;
-      const response6 = await api.get(`/statistical/top-gift-selected/${timeFilter}`);
+      const response6 = await api.get(
+        `/statistical/top-gift-selected/${timeFilter}/${formattedDate}`,
+      );
       const topGiftSelected = response6.data.result;
       console.log(lowestStockProductVariant);
       setStats((prevStats) => ({
@@ -79,6 +110,7 @@ const Dashboard = () => {
         totalProductsSold: overview.total_sold_products,
         averageOrderValue: overview.average_order,
         categoryRevenue: revenueByCategory,
+        brandRevenue: revenueByBrand,
         revenueData: revenueByDate,
         topProducts: topProducts,
         lowStockProducts: lowestStockProductVariant,
@@ -95,7 +127,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchStats();
-  }, [timeFilter]);
+  }, [timeFilter, selectedDate]); // Thêm selectedDate vào dependency array
 
   // Dữ liệu cho biểu đồ doanh thu
   const revenueChartData = {
@@ -154,36 +186,59 @@ const Dashboard = () => {
     },
   };
 
-  return (
-    <div id="dashboard-container" className="p-3 sm:p-6 bg-white min-h-screen relative">
-      {/* Header */}
-      <div className="mb-4 sm:mb-6">
-        <Link
-          to="/admin"
-          className="inline-flex items-center px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Quay lại trang quản trị
-        </Link>
-      </div>
+  // Dữ liệu cho biểu đồ thương hiệu
+  const brandChartData = {
+    labels: stats.brandRevenue.map((item) => item.name),
+    datasets: [
+      {
+        label: 'Doanh thu theo thương hiệu',
+        data: stats.brandRevenue.map((item) => item.revenue),
+        backgroundColor: ['#00D5BE', '#f9a8d4', '#8e32e9', '#ffde73', '#60a5fa', '#a3a3a3'],
+        borderColor: ['#fff'],
+        borderWidth: 1,
+      },
+    ],
+  };
 
+  const brandChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      title: { display: true, text: 'Phân bổ doanh thu theo thương hiệu' },
+    },
+  };
+
+  return (
+    <div
+      id="dashboard-container"
+      className="p-3 sm:p-6 bg-[var(--color-bg)] shadow-lg min-h-screen relative"
+    >
       {/* Tiêu đề và bộ lọc */}
-      <div className="bg-[#00D5BE] text-white p-3 rounded-t-lg flex justify-between items-center">
-        <h2 className="text-base font-semibold">THỐNG KÊ BÁN HÀNG MỸ PHẨM</h2>
-        <select
-          value={timeFilter}
-          onChange={(e) => setTimeFilter(e.target.value)}
-          className="p-2 rounded bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="WEEK">Theo tuần</option>
-          <option value="MONTH">Theo tháng</option>
-          <option value="YEAR">Theo năm</option>
-          <option value="ALL">Tất cả</option>
-        </select>
+      <div className="bg-[var(--color-title)] text-white p-3 rounded-lg flex justify-between items-center">
+        <h2 className="text-base font-semibold">THỐNG KÊ BÁN HÀNG</h2>
+        <div className="flex items-center gap-2">
+          <select
+            value={timeFilter}
+            onChange={(e) => setTimeFilter(e.target.value)}
+            className="p-2 rounded bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="DAY">Theo ngày</option>
+            <option value="WEEK">Theo tuần</option>
+            <option value="MONTH">Theo tháng</option>
+            <option value="YEAR">Theo năm</option>
+            <option value="ALL">Tất cả</option>
+          </select>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="p-2 rounded bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
       </div>
 
       {/* Nội dung chính */}
-      <div className="p-4">
+      <div className="pt-4">
         {error && <div className="mb-4 text-red-500 text-sm">{error}</div>}
         {loading ? (
           <div className="text-center text-gray-500">Đang tải...</div>
@@ -211,32 +266,30 @@ const Dashboard = () => {
                   {(stats.averageOrderValue / 1000).toFixed(1)}k VND
                 </p>
               </div>
-              {/* <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-[#00D5BE]">
-                <h3 className="text-sm font-medium text-gray-700">Giá trị đơn hàng TB</h3>
-                <p className="text-2xl font-bold text-[#00D5BE]">
-                  {(stats.averageOrderValue / 1000).toFixed(0)}K VND
-                </p>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-[#f9a8d4]">
-                <h3 className="text-sm font-medium text-gray-700">Khách hàng mới</h3>
-                <p className="text-2xl font-bold text-[#f9a8d4]">{stats.newCustomers}</p>
-              </div> */}
             </div>
 
             {/* Biểu đồ */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 gap-4 mb-6">
+              {/* Biểu đồ Doanh thu theo thời gian (full width) */}
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <Line data={revenueChartData} options={revenueChartOptions} />
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <Pie data={categoryChartData} options={categoryChartOptions} />
+
+              {/* Hai biểu đồ Pie song song: Danh mục và Thương hiệu */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-lg shadow-md">
+                  <Pie data={categoryChartData} options={categoryChartOptions} />
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-md">
+                  <Pie data={brandChartData} options={brandChartOptions} />
+                </div>
               </div>
             </div>
 
             {/* Top sản phẩm bán chạy */}
-            <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+            <div className="bg-[#BBE9FF] p-4 rounded-lg shadow-md mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-sm font-medium text-gray-700">Top sản phẩm bán chạy</h3>
+                <h3 className="text-base font-semibold text-gray-700">SẢN PHẨM BÁN CHẠY</h3>
               </div>
               <div className="max-h-80 overflow-y-auto border-[1px] border-[#ddd] rounded">
                 <table className="w-full text-sm text-left text-gray-500">
@@ -249,15 +302,13 @@ const Dashboard = () => {
                       <th className="px-4 py-3">Tồn kho</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="bg-[#FFF]">
                     {stats.topProducts.length > 0 ? (
                       stats.topProducts.map((product) => (
                         <tr
                           key={product[0]}
                           className="border-t-[1px] border-[#ddd] hover:bg-gray-100"
-                          onClick={() =>
-                            navigate(`/products/product-management/edit/${product[0]}`)
-                          }
+                          onClick={() => navigate(`/products/edit/${product[0]}`)}
                         >
                           <td className="px-4 py-3">
                             <img
@@ -285,8 +336,8 @@ const Dashboard = () => {
             </div>
 
             {/* Sản phẩm tồn kho thấp */}
-            <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-4">Sản phẩm tồn kho thấp</h3>
+            <div className="bg-[#F5EFFF] p-4 rounded-lg shadow-md mb-6">
+              <h3 className="text-base font-semibold text-gray-700 mb-4">SẢN PHẨM TỒN KHO THẤP</h3>
               <div className="max-h-80 overflow-y-auto border-[1px] border-[#ddd] rounded">
                 <table className="w-full text-sm text-left text-gray-500">
                   <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
@@ -297,15 +348,13 @@ const Dashboard = () => {
                       <th className="px-4 py-3">Tồn kho</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="bg-[#FFF]">
                     {stats.lowStockProducts.length > 0 ? (
                       stats.lowStockProducts.map((product) => (
                         <tr
                           key={product[0]}
                           className="border-t-[1px] border-[#ddd] hover:bg-gray-100"
-                          onClick={() =>
-                            navigate(`/products/product-management/edit/${product[14]}`)
-                          }
+                          onClick={() => navigate(`/products/edit/${product[14]}`)}
                         >
                           <td className="px-4 py-3">
                             <img
@@ -341,12 +390,12 @@ const Dashboard = () => {
             </div>
 
             {/* Thống kê quà tặng */}
-            <div className="bg-white p-4 rounded-lg shadow-md">
+            <div className="bg-[#D2E0FB] p-4 rounded-lg shadow-md">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-sm font-medium text-gray-700">Thống kê quà tặng</h3>
+                <h3 className="text-base font-semibold text-gray-700">THỐNG KÊ QUÀ TẶNG</h3>
                 <button
                   onClick={() => navigate('/gifts')}
-                  className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+                  className="px-2 py-1 bg-[#8967B3] text-sm text-[#FFF] rounded hover:bg-[#624E88] transition-colors"
                 >
                   Xem chi tiết
                 </button>
@@ -363,7 +412,7 @@ const Dashboard = () => {
                       <th className="px-4 py-3">Ngày kết thúc</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="bg-[#FFF]">
                     {stats.giftStats.length > 0 ? (
                       stats.giftStats.map((gift) => (
                         <tr
@@ -380,7 +429,6 @@ const Dashboard = () => {
                           <td className="px-4 py-3">{gift[2]}</td>
                           <td className="px-4 py-3">{gift[8]}</td>
                           <td className="px-4 py-3">
-                            {' '}
                             {(() => {
                               try {
                                 const attrs = JSON.parse(gift[4] || '[]');

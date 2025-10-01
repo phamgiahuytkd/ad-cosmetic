@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import api from '../../service/api';
+import { displayValue, statusMap, truncateText } from '../../common/commonFunc';
 
 // Hàm chuyển đổi không dấu
 const removeDiacritics = (str) => {
@@ -30,13 +31,6 @@ const Orders = () => {
   const itemsPerPage = 5;
 
   // Danh sách bốn trạng thái chính và tên tiếng Việt
-  const statusMap = {
-    COMPLETED: { display: 'Đã hoàn thành', color: 'bg-green-100 text-green-800' },
-    PENDING: { display: 'Đang chờ xử lý', color: 'bg-yellow-100 text-yellow-800' },
-    UNCOMPLETED: { display: 'Chưa hoàn thành', color: 'bg-red-100 text-red-800' },
-    PROCESSING: { display: 'Đang xử lý', color: 'bg-blue-100 text-blue-800' },
-  };
-
   const allStatuses = Object.keys(statusMap);
 
   // Lấy danh sách đơn hàng từ API
@@ -108,18 +102,6 @@ const Orders = () => {
 
   const { totalPages, startIndex, endIndex, currentOrders } = paginationData;
 
-  // Cắt ngắn văn bản để hiển thị
-  const truncateText = (text, maxLength) => {
-    if (!text) return 'Đang cập nhật';
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
-
-  // Xử lý hiển thị giá trị
-  const displayValue = (value) => {
-    return value ?? 'Đang cập nhật';
-  };
-
   // Xóa tìm kiếm
   const clearSearch = () => {
     setSearchTerm('');
@@ -177,46 +159,22 @@ const Orders = () => {
   }
 
   return (
-    <div className="p-3 sm:p-6 bg-white min-h-screen">
-      {/* Header Tabs */}
-      <div className="mb-4 sm:mb-6">
-        <div className="sm:hidden">
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="w-full px-4 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
-          >
-            {isMobileMenuOpen ? <X className="w-4 h-4 mr-2" /> : <Menu className="w-4 h-4 mr-2" />}
-            MENU
-          </button>
-          {isMobileMenuOpen && (
-            <div className="mt-2 space-y-2 bg-white border border-gray-200 rounded shadow-lg p-2">
-              <Link
-                to="view"
-                className="w-full px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                XEM CHI TIẾT
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-
+    <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4 sm:mb-6">
         {allStatuses.map((status) => {
           const iconBgColor =
             {
-              COMPLETED: 'bg-green-600',
-              PENDING: 'bg-yellow-600',
-              UNCOMPLETED: 'bg-red-600',
               PROCESSING: 'bg-blue-600',
+              PENDING: 'bg-yellow-600',
+              COMPLETED: 'bg-green-600',
+              UNCOMPLETED: 'bg-red-600',
             }[status] || 'bg-gray-600';
 
           return (
             <div
               key={status}
-              className={`border border-gray-200 rounded p-4 ${statusMap[status].color}`}
+              className={`shadow-md rounded p-4 ${status === 'PROCESSING' ? 'bg-white' : ''} ${statusMap[status].color}`}
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -235,7 +193,7 @@ const Orders = () => {
       </div>
 
       {/* Filter Section */}
-      <div className="bg-white rounded p-3 sm:p-4 mb-4 sm:mb-6 border-gray-100 border">
+      <div className="bg-white rounded p-3 sm:p-4 mb-4 sm:mb-6 shadow-md">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
@@ -316,7 +274,7 @@ const Orders = () => {
 
       {/* Order List */}
       <div className="bg-white rounded shadow-md">
-        <div className="bg-[#00D5BE] text-white p-3 rounded-t flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
+        <div className="bg-[var(--color-title)] text-white p-3 rounded-t flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
           <h2 className="text-base font-semibold">
             QUẢN LÝ ĐƠN HÀNG ({filteredOrders.length} mục)
           </h2>
@@ -368,7 +326,7 @@ const Orders = () => {
                         displayValue(order.status)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-6 py-3 text-center">
                     <Link
                       to={`view/${order.id}`}
                       className="px-3 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center justify-center cursor-pointer touch-manipulation"
@@ -391,26 +349,32 @@ const Orders = () => {
                 <div className="flex flex-col space-y-3">
                   <div className="flex items-start space-x-3">
                     <div className="min-w-0 flex-1">
-                      <Link
+                      <div
                         to={`view/${order.id}`}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline text-left cursor-pointer touch-manipulation block w-full"
+                        className="font-medium"
                         title={order.name || 'Đang cập nhật'}
                       >
                         {startIndex + index + 1} - {truncateText(order.name, 30)}
-                      </Link>
-                      <div className="text-xs text-gray-500 mt-1">ID: {displayValue(order.id)}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        SĐT: {displayValue(order.phone)}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Địa chỉ: {truncateText(order.fulladdress, 40)}
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-[2.75rem] text-gray-800 font-medium">ID:</strong>{' '}
+                        {displayValue(order.id)}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Tổng tiền: {(order.amount || 0).toLocaleString('vi-VN')} VNĐ
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-8 text-gray-800 font-medium">SĐT:</strong>{' '}
+                        {displayValue(order.phone)}
                       </div>
-                      <div className="mt-1">
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-3 text-gray-800 font-medium">Địa chỉ:</strong>{' '}
+                        {truncateText(order.fulladdress, 40)}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-3 text-gray-800 font-medium">Tổng tiền:</strong>{' '}
+                        {(order.amount || 0).toLocaleString('vi-VN')} VNĐ
+                      </div>
+                      <div className="mt-3">
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-sm ${
                             statusMap[order.status?.toUpperCase()]?.color ||
                             'bg-gray-100 text-gray-800'
                           }`}

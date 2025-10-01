@@ -133,7 +133,7 @@ const OrderDetail = () => {
         'Transaction Date': order.date,
         'Transaction Amount': order.amount / 25228 || 0,
         'Payment Method': order.payment || 'unknown',
-        'Device Used': order.payment, // Giả định không có thông tin thiết bị
+        'Device Used': order.device, // Giả định không có thông tin thiết bị
         'Transaction Hour': order.date ? new Date(order.date).getHours() : 0,
         Quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0) || 1,
       };
@@ -253,7 +253,7 @@ const OrderDetail = () => {
         <div className="text-center text-gray-600">Không tìm thấy đơn hàng</div>
         <Link
           to="/orders"
-          className="mt-4 inline-block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="mt-4 inline-block px-4 py-2 bg-rose-50 text-white rounded hover:bg-rose-100"
         >
           Quay lại danh sách đơn hàng
         </Link>
@@ -262,12 +262,12 @@ const OrderDetail = () => {
   }
 
   return (
-    <div className="p-3 sm:p-6 bg-white min-h-screen">
+    <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
       {/* Header */}
       <div className="mb-4 sm:mb-6">
         <Link
           to="/orders"
-          className="inline-flex items-center px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors cursor-pointer"
+          className="shadow-md inline-flex items-center px-4 py-2 text-sm bg-rose-50 text-gray-700 rounded-sm hover:bg-rose-100 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Quay lại danh sách đơn hàng
@@ -276,7 +276,7 @@ const OrderDetail = () => {
 
       {/* Order Information */}
       <div className="bg-white rounded shadow-md mb-6">
-        <div className="bg-[#00D5BE] text-white p-3 rounded-t">
+        <div className="bg-[var(--color-title)] text-white p-3 rounded-t">
           <h2 className="text-base font-semibold">CHI TIẾT ĐƠN HÀNG #{order.id}</h2>
         </div>
         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -324,7 +324,7 @@ const OrderDetail = () => {
       {/* Order Processing (only shown if only PROCESSING exists) */}
       {isOnlyProcessing && (
         <div className="bg-white rounded shadow-md mb-6">
-          <div className="bg-[#00D5BE] text-white p-3 rounded-t">
+          <div className="bg-[var(--color-title)] text-white p-3 rounded-t">
             <h2 className="text-base font-semibold">XỬ LÝ ĐƠN</h2>
           </div>
           <div className="p-4">
@@ -371,7 +371,7 @@ const OrderDetail = () => {
       {/* Payment Status (only shown if APPROVED exists) */}
       {hasApprovedStatus && (
         <div className="bg-white rounded shadow-md mb-6">
-          <div className="bg-[#00D5BE] text-white p-3 rounded-t">
+          <div className="bg-[var(--color-title)] text-white p-3 rounded-t">
             <h2 className="text-base font-semibold">THANH TOÁN</h2>
           </div>
           <div className="p-4">
@@ -394,7 +394,7 @@ const OrderDetail = () => {
 
       {/* Order Items */}
       <div className="bg-white rounded shadow-md mb-6">
-        <div className="bg-[#00D5BE] text-white p-3 rounded-t">
+        <div className="bg-[var(--color-title)] text-white p-3 rounded-t">
           <h2 className="text-base font-semibold">
             SẢN PHẨM TRONG ĐƠN HÀNG ({cartItems.length} mục)
           </h2>
@@ -482,7 +482,7 @@ const OrderDetail = () => {
 
       {/* Order Status Timeline */}
       <div className="bg-white rounded shadow-md">
-        <div className="bg-[#00D5BE] text-white p-3 rounded-t">
+        <div className="bg-[var(--color-title)] text-white p-3 rounded-t">
           <h2 className="text-base font-semibold">LỊCH SỬ TRẠNG THÁI</h2>
         </div>
         <div className="p-4">

@@ -1,106 +1,87 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ArrowLeft, Edit, Plus, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { ArrowLeft, Edit, Trash2, Plus, Image, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import api from '../../service/api';
-import { getImageUrl } from '../../common/commonFunc';
+import { formatToVietnamTime, getImageUrl } from '../../common/commonFunc';
 
-const GiftManagement = () => {
+// Hàm chuyển đổi không dấu
+const removeDiacritics = (str) => {
+  return str
+    ? str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+    : '';
+};
+
+const Gift = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [gifts, setGifts] = useState([]);
-  const [productVariants, setProductVariants] = useState([]);
-  const [editGiftId, setEditGiftId] = useState(null);
-  const [editForm, setEditForm] = useState({
-    productVariantIds: '',
-    productVariantId: '',
-    stock: '',
-    startDay: '',
-    endDay: '',
-  });
-
-  // Mock data for gifts with attributes
-  const mockGifts = [
-    {
-      id: 1,
-      productVariantId: 'variant_001',
-      productVariantIds: ['variant_002', 'variant_003'],
-      stock: 50,
-      startDay: '2025-07-01T10:00',
-      endDay: '2025-07-15T23:59',
-      image: 'https://via.placeholder.com/64?text=Gift1',
-      attributes: { color: 'Xanh', volume: '100ml' },
-    },
-    {
-      id: 2,
-      productVariantId: 'variant_002',
-      productVariantIds: ['variant_001', 'variant_004'],
-      stock: 30,
-      startDay: '2025-07-05T09:00',
-      endDay: '2025-07-20T23:59',
-      image: 'https://via.placeholder.com/64?text=Gift2',
-      attributes: { color: 'Đen', size: 'L' },
-    },
-    {
-      id: 3,
-      productVariantId: 'variant_003',
-      productVariantIds: ['variant_001', 'variant_002'],
-      stock: 20,
-      startDay: '2025-07-10T08:00',
-      endDay: '2025-07-25T23:59',
-      image: 'https://via.placeholder.com/64?text=Gift3',
-      attributes: { color: 'Xanh', size: '32' },
-    },
-  ];
-
-  // Mock data for productVariants
-  const mockProductVariants = [
-    {
-      id: 'variant_001',
-      name: 'Áo thun trắng size M',
-      image: 'https://via.placeholder.com/64?text=Variant1',
-    },
-    {
-      id: 'variant_002',
-      name: 'Áo thun đen size L',
-      image: 'https://via.placeholder.com/64?text=Variant2',
-    },
-    {
-      id: 'variant_003',
-      name: 'Quần jeans xanh size 32',
-      image: 'https://via.placeholder.com/64?text=Variant3',
-    },
-    {
-      id: 'variant_004',
-      name: 'Mũ lưỡi trai đỏ',
-      image: 'https://via.placeholder.com/64?text=Variant4',
-    },
-  ];
+  const [searchTerm, setSearchTerm] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError('');
       try {
-        // Use mock data instead of API calls
         const response = await api.get('/gift');
         if (response.data.result) {
           setGifts(response.data.result);
-          console.log(response.data.result);
+          console.log('Gift data:', response.data.result);
         } else {
-          setError(response?.data?.message || 'Không thể tải danh sách quf tặng');
+          setError(response?.data?.message || 'Không thể tải danh sách quà tặng');
         }
-        setProductVariants(mockProductVariants);
       } catch (error) {
-        setError('Lỗi khi tải dữ liệu');
+        setError(error.response?.data?.message || 'Lỗi khi tải dữ liệu');
+        console.error('Error fetching gifts:', error);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
   }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, startDateFilter, endDateFilter]);
+
+  // Filter gifts based on search term and date range
+  const filteredGifts = useMemo(() => {
+    return gifts.filter((gift) => {
+      const searchLower = removeDiacritics(searchTerm).toLowerCase();
+      const matchesSearch =
+        removeDiacritics(gift.name || '')
+          .toLowerCase()
+          .includes(searchLower) || gift.id.toString().toLowerCase().includes(searchLower);
+
+      const giftStartDate = new Date(gift.start_day);
+      const giftEndDate = new Date(gift.end_day);
+      const filterStart = startDateFilter ? new Date(startDateFilter) : null;
+      const filterEnd = endDateFilter ? new Date(endDateFilter) : null;
+
+      const matchesDateRange =
+        (!filterStart || giftStartDate >= filterStart) && (!filterEnd || giftEndDate <= filterEnd);
+
+      return matchesSearch && matchesDateRange;
+    });
+  }, [gifts, searchTerm, startDateFilter, endDateFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredGifts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentGifts = filteredGifts.slice(startIndex, endIndex);
 
   // Delete Gift
   const handleDeleteGift = async (giftId) => {
@@ -117,7 +98,7 @@ const GiftManagement = () => {
 
     if (result.isConfirmed) {
       try {
-        await api.delete(`/gifts/${giftId}`);
+        await api.delete(`/gift/${giftId}`);
         setGifts(gifts.filter((gift) => gift.id !== giftId));
         Swal.fire({
           title: 'Thành công',
@@ -138,101 +119,14 @@ const GiftManagement = () => {
     }
   };
 
-  // Open Edit Form
-  const handleEditGift = (gift) => {
-    setEditGiftId(gift.id);
-    setEditForm({
-      productVariantIds: gift.productVariantIds.join(','),
-      productVariantId: gift.productVariantId,
-      stock: gift.stock.toString(),
-      startDay: gift.startDay.slice(0, 16),
-      endDay: gift.endDay.slice(0, 16),
-    });
-  };
-
-  // Cancel Edit
-  const handleCancelEdit = () => {
-    setEditGiftId(null);
-    setEditForm({
-      productVariantIds: '',
-      productVariantId: '',
-      stock: '',
-      startDay: '',
-      endDay: '',
-    });
-  };
-
-  // Update Gift
-  const handleUpdateGift = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      // Validate input
-      if (
-        !editForm.productVariantIds ||
-        !editForm.productVariantId ||
-        !editForm.stock ||
-        !editForm.startDay ||
-        !editForm.endDay
-      ) {
-        setError('Vui lòng nhập đầy đủ thông tin quà tặng');
-        return;
-      }
-      if (parseInt(editForm.stock) < 0) {
-        setError('Số lượng tồn kho phải lớn hơn hoặc bằng 0');
-        return;
-      }
-      if (new Date(editForm.startDay) > new Date(editForm.endDay)) {
-        setError('Ngày bắt đầu phải trước ngày kết thúc');
-        return;
-      }
-
-      const payload = {
-        product_variant_ids: editForm.productVariantIds,
-        product_variant_id: editForm.productVariantId,
-        stock: parseInt(editForm.stock),
-        start_day: editForm.startDay,
-        end_day: editForm.endDay,
-      };
-
-      const response = await api.put(`/gifts/${editGiftId}`, payload);
-      setGifts(gifts.map((gift) => (gift.id === editGiftId ? response.data.result : gift)));
-      Swal.fire({
-        title: 'Thành công',
-        text: 'Đã cập nhật quà tặng thành công!',
-        icon: 'success',
-        confirmButtonColor: '#22c55e',
-      });
-      handleCancelEdit();
-    } catch (error) {
-      console.error('Error updating gift:', error);
-      setError(error.response?.data?.message || 'Lỗi khi cập nhật quà tặng');
-      Swal.fire({
-        title: 'Lỗi',
-        text: error.response?.data?.message || 'Lỗi khi cập nhật quà tặng',
-        icon: 'error',
-        confirmButtonColor: '#ef4444',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatDate = (date) => {
-    return date ? new Date(date).toLocaleString('vi-VN') : '';
-  };
-
-  // Format attributes for display
-  const formatAttributes = (attributes) => {
-    return Object.entries(attributes)
-      .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`)
-      .join(', ');
+  // Navigate to Edit Page
+  const handleEditGift = (id) => {
+    navigate(`/gifts/edit/${id}`);
   };
 
   if (loading) {
     return (
-      <div className="p-3 sm:p-6 bg-gray-100 min-h-screen">
+      <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
           <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
@@ -243,13 +137,13 @@ const GiftManagement = () => {
 
   if (error) {
     return (
-      <div className="p-3 sm:p-6 bg-gray-100 min-h-screen">
+      <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
         <div className="flex justify-center items-center h-64">
           <div className="text-center">
             <div className="text-red-500 mb-4">{error}</div>
             <Link
               to="/orders"
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="px-4 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer touch-manipulation"
             >
               Quay lại danh sách đơn hàng
             </Link>
@@ -260,199 +154,262 @@ const GiftManagement = () => {
   }
 
   return (
-    <div className="p-3 sm:p-6 bg-gray-100 min-h-screen">
+    <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
       {/* Header */}
       <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
         <Link
-          to="/add-gift"
-          className="px-4 py-2 text-sm uppercase bg-blue-500 text-white rounded-sm hover:bg-blue-600 flex items-center transition-colors cursor-pointer"
+          to="/gifts/add"
+          className="shadow-md px-4 py-2 text-sm uppercase bg-green-500 text-white rounded hover:bg-green-600 flex items-center cursor-pointer touch-manipulation"
         >
           <Plus className="w-4 h-4 mr-2" />
           Thêm quà tặng mới
         </Link>
       </div>
 
-      {/* Gift List */}
-      <div className="bg-white rounded-lg shadow-md">
-        <div className="bg-[#00D5BE] text-white p-3 rounded-t-lg">
-          <h2 className="text-base font-semibold">QUẢN LÝ QUÀ TẶNG ({gifts.length} mục)</h2>
-        </div>
-        <div className="p-4 overflow-x-auto">
-          {gifts.length > 0 ? (
-            <table className="w-full text-sm text-gray-700">
-              <thead className="text-sm text-gray-700 bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-4 py-3 text-center">
-                    STT
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-left">
-                    Quà tặng
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-center">
-                    Hình ảnh
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-left">
-                    Thuộc tính
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-center">
-                    Tồn kho
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-center">
-                    Ngày bắt đầu
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-center">
-                    Ngày kết thúc
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-center">
-                    Hành động
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {gifts.map((gift, index) => (
-                  <tr key={gift.id} className="hover:bg-gray-100">
-                    <td className="px-4 py-3 text-center">{index + 1}</td>
-                    <td className="px-4 py-3 text-left items-center">{gift?.name}</td>
-                    <td className="px-4 py-3 text-center">
-                      {gift.image ? (
-                        <img
-                          src={getImageUrl(gift.image)}
-                          alt="Gift"
-                          className="w-16 h-16 object-cover rounded mx-auto"
-                        />
-                      ) : (
-                        'Không có hình ảnh'
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-left">
-                      {gift.attribute_values.map((attr, idx) => (
-                        <p key={idx}>
-                          <strong className="font-semibold">{attr.attribute_id}</strong> : {attr.id}
-                        </p>
-                      ))}
-                    </td>
-                    <td className="px-4 py-3 text-center">{gift.stock}</td>
-                    <td className="px-4 py-3 text-center">{formatDate(gift.start_day)}</td>
-                    <td className="px-4 py-3 text-center">{formatDate(gift.end_day)}</td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex justify-center items-center space-x-2">
-                        <button
-                          onClick={() => handleEditGift(gift)}
-                          className="text-blue-500 hover:text-blue-700"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteGift(gift.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="text-center py-8 text-gray-600">Chưa có quà tặng</div>
-          )}
+      {/* Search and Filter Section */}
+      <div className="bg-white rounded-sm p-3 sm:p-4 mb-4 sm:mb-6 shadow-md">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tìm kiếm quà tặng
+            </label>
+            <input
+              type="text"
+              placeholder="Tìm theo mã hoặc tên"
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Ngày bắt đầu</label>
+            <input
+              type="datetime-local"
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              value={startDateFilter}
+              onChange={(e) => setStartDateFilter(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Ngày kết thúc</label>
+            <input
+              type="datetime-local"
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              value={endDateFilter}
+              onChange={(e) => setEndDateFilter(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Edit Form */}
-      {editGiftId && (
-        <div className="bg-white rounded-lg shadow-md mt-6">
-          <div className="bg-[#00D5BE] text-white p-3 rounded-t-lg">
-            <h2 className="text-base font-semibold">CHỈNH SỬA QUÀ TẶNG</h2>
-          </div>
-          <div className="p-4">
-            {error && <div className="mb-4 text-red-500 text-sm">{error}</div>}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ID các biến thể sản phẩm (phân tách bằng dấu phẩy)
-                </label>
-                <input
-                  type="text"
-                  value={editForm.productVariantIds}
-                  onChange={(e) => setEditForm({ ...editForm, productVariantIds: e.target.value })}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập ID các biến thể sản phẩm (ví dụ: id1,id2,id3)..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Biến thể sản phẩm quà tặng
-                </label>
-                <select
-                  value={editForm.productVariantId}
-                  onChange={(e) => setEditForm({ ...editForm, productVariantId: e.target.value })}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Chọn biến thể sản phẩm quà tặng</option>
-                  {productVariants.map((variant) => (
-                    <option key={variant.id} value={variant.id}>
-                      {variant.name || variant.id}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Số lượng tồn kho
-                </label>
-                <input
-                  type="number"
-                  value={editForm.stock}
-                  onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập số lượng tồn kho..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Ngày bắt đầu</label>
-                <input
-                  type="datetime-local"
-                  value={editForm.startDay}
-                  onChange={(e) => setEditForm({ ...editForm, startDay: e.target.value })}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+      {/* Gift List */}
+      <div className="bg-white rounded shadow-md">
+        <div className="bg-[var(--color-title)] text-white p-3 rounded-t flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
+          <h2 className="text-base font-semibold">QUẢN LÝ QUÀ TẶNG ({filteredGifts.length} mục)</h2>
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden lg:block overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-center text-sm font-bold text-gray-700">STT</th>
+                <th className="px-4 py-3 text-center text-sm font-bold text-gray-700">Hình ảnh</th>
+                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">
+                  Tên biến thể
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Thuộc tính</th>
+                <th className="px-4 py-3 text-center text-sm font-bold text-gray-700">
+                  Ngày bắt đầu
+                </th>
+                <th className="px-4 py-3 text-center text-sm font-bold text-gray-700">
                   Ngày kết thúc
-                </label>
-                <input
-                  type="datetime-local"
-                  value={editForm.endDay}
-                  onChange={(e) => setEditForm({ ...editForm, endDay: e.target.value })}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                </th>
+                <th className="px-4 py-3 text-center text-sm font-bold text-gray-700">Hành động</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {currentGifts.map((gift, index) => (
+                <tr key={gift.id} className="hover:bg-gray-100">
+                  <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                    {startIndex + index + 1}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {gift.image ? (
+                      <img
+                        src={getImageUrl(gift.image)}
+                        alt={gift.name}
+                        className="w-16 h-16 object-cover rounded mx-auto"
+                      />
+                    ) : (
+                      <Image className="w-16 h-16 text-gray-400 mx-auto" />
+                    )}
+                  </td>
+                  <td
+                    className="px-4 py-3 text-sm text-gray-900 font-medium max-w-xs truncate"
+                    title={gift.name}
+                  >
+                    {gift.name}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {gift.attribute_values && gift.attribute_values.length > 0
+                      ? gift.attribute_values
+                          .map((attr) => `${attr.attribute_id}: ${attr.id}`)
+                          .join(', ')
+                      : 'N/A'}
+                  </td>
+
+                  <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                    {formatToVietnamTime(gift.start_day)}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                    {formatToVietnamTime(gift.end_day)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex justify-center space-x-2">
+                      <Link
+                        to={`/gifts/edit/${gift.id}`}
+                        className="px-3 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer touch-manipulation"
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Sửa
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteGift(gift.id)}
+                        className="px-3 py-2 bg-red-500 text-white rounded text-xs hover:bg-red-600 flex items-center cursor-pointer touch-manipulation"
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" />
+                        Xóa
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile/Tablet Card View */}
+        <div className="lg:hidden">
+          <div className="divide-y divide-gray-200">
+            {currentGifts.map((gift, index) => (
+              <div key={gift.id} className="p-4 hover:bg-gray-50">
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          {gift.image ? (
+                            <img
+                              src={getImageUrl(gift.image)}
+                              alt={gift.name}
+                              className="w-16 h-16 object-cover rounded"
+                            />
+                          ) : (
+                            <Image className="w-16 h-16 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="font-medium max-w-xs truncate" title={gift.name}>
+                          {startIndex + index + 1} - {gift.name}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-3 text-gray-800 font-medium">Thuộc tính:</strong>
+                        {gift.attribute_values && gift.attribute_values.length > 0
+                          ? gift.attribute_values
+                              .map((attr) => `${attr.attribute_id}: ${attr.id}`)
+                              .join(', ')
+                          : 'N/A'}
+                      </div>
+
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-3 text-gray-800 font-medium">Ngày bắt đầu:</strong>
+                        {formatToVietnamTime(gift.start_day)}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-3 text-gray-800 font-medium">Ngày kết thúc:</strong>
+                        {formatToVietnamTime(gift.end_day)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Link
+                      to={`/gifts/edit/${gift.id}`}
+                      className="px-3 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer touch-manipulation"
+                    >
+                      <Edit className="w-3 h-3 mr-1" />
+                      Sửa
+                    </Link>
+                    <button
+                      onClick={() => handleDeleteGift(gift.id)}
+                      className="px-3 py-2 bg-red-500 text-white rounded text-xs hover:bg-red-600 flex items-center cursor-pointer touch-manipulation"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      Xóa
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="mt-4 flex justify-end space-x-2">
-              <button
-                onClick={handleCancelEdit}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleUpdateGift}
-                disabled={loading}
-                className={`px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors ${
-                  loading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {loading ? 'Đang xử lý...' : 'Cập nhật'}
-              </button>
-            </div>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* Empty State */}
+        {filteredGifts.length === 0 && (
+          <div className="text-center py-8 text-gray-600">
+            {searchTerm || startDateFilter || endDateFilter
+              ? 'Không tìm thấy quà tặng nào phù hợp'
+              : 'Chưa có quà tặng'}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filteredGifts.length > 0 && totalPages > 1 && (
+          <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+            <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+              <div className="text-sm text-gray-700">
+                Hiển thị {startIndex + 1} - {Math.min(endIndex, filteredGifts.length)} của{' '}
+                {filteredGifts.length} mục
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Trước
+                </button>
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 text-sm border rounded ${
+                        currentPage === page
+                          ? 'bg-blue-500 text-white border-blue-500'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  Sau
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-export default GiftManagement;
+export default Gift;

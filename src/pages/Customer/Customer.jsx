@@ -1,7 +1,17 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, User, Menu, X, Lock, CircleX } from 'lucide-react';
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  User,
+  Menu,
+  X,
+  Lock,
+  CircleX,
+  FileText,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../service/api';
 import Swal from 'sweetalert2';
@@ -164,31 +174,7 @@ const Customers = () => {
   }
 
   return (
-    <div className="p-3 sm:p-6 bg-white min-h-screen">
-      {/* Header Tabs */}
-      <div className="mb-4 sm:mb-6">
-        <div className="sm:hidden">
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="w-full px-4 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
-          >
-            {isMobileMenuOpen ? <X className="w-4 h-4 mr-2" /> : <Menu className="w-4 h-4 mr-2" />}
-            MENU
-          </button>
-          {isMobileMenuOpen && (
-            <div className="mt-2 space-y-2 bg-white border border-gray-200 rounded shadow-lg p-2">
-              <Link
-                to="view"
-                className="w-full px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
-              >
-                <User className="w-4 h-4 mr-2" />
-                XEM CHI TIẾT
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-
+    <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 sm:mb-6">
         {allStatuses.map((status) => {
@@ -202,7 +188,7 @@ const Customers = () => {
           return (
             <div
               key={status}
-              className={`border border-gray-200 rounded p-4 ${statusMap[status].color}`}
+              className={`shadow-md rounded p-4 ${status === 'NEW' && 'bg-white'} ${statusMap[status].color}`}
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -221,7 +207,7 @@ const Customers = () => {
       </div>
 
       {/* Filter Section */}
-      <div className="bg-white rounded p-3 sm:p-4 mb-4 sm:mb-6 border-gray-100 border">
+      <div className="bg-white rounded p-3 sm:p-4 mb-4 sm:mb-6 shadow-md">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
@@ -274,7 +260,7 @@ const Customers = () => {
 
       {/* Customer List */}
       <div className="bg-white rounded shadow-md">
-        <div className="bg-[#00D5BE] text-white p-3 rounded-t flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
+        <div className="bg-[var(--color-title)] text-white p-3 rounded-t flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
           <h2 className="text-base font-semibold">
             QUẢN LÝ KHÁCH HÀNG ({filteredCustomers.length} mục)
           </h2>
@@ -305,13 +291,13 @@ const Customers = () => {
                     {startIndex + index + 1}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                    <Link
+                    <span
                       to={`view/${customer.id}`}
-                      className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer touch-manipulation"
+                      className=""
                       title={customer.name || 'Đang cập nhật'}
                     >
                       {truncateText(customer.name, 30)}
-                    </Link>
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 text-center">
                     {displayValue(customer.phone)}
@@ -343,22 +329,14 @@ const Customers = () => {
                   <td className="px-4 py-3 text-sm text-gray-900 text-center">
                     {displayValue(customer.reputation)}
                   </td>
-                  <td className="px-4 py-3 text-center flex justify-center">
-                    <button
-                      className={`
-                        px-3 py-2 rounded text-xs flex items-center justify-center touch-manipulation
-                        ${
-                          customer.status === 'BLOCK'
-                            ? 'bg-red-300 text-white opacity-50 cursor-not-allowed'
-                            : 'bg-red-500 text-white hover:bg-red-600 cursor-pointer'
-                        }
-                      `}
-                      disabled={customer.status === 'BLOCK'}
-                      onClick={() => handleBlockCustomer(customer.id)}
+                  <td className="px-6 py-3 text-center">
+                    <Link
+                      to={`view/${customer.id}`}
+                      className="px-3 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center justify-center cursor-pointer touch-manipulation"
                     >
-                      <Lock className="w-3 h-3 mr-1" />
-                      Khóa
-                    </button>
+                      <FileText className="w-3 h-3 mr-1" />
+                      Xem
+                    </Link>
                   </td>
                 </tr>
               ))}
@@ -374,36 +352,42 @@ const Customers = () => {
                 <div className="flex flex-col space-y-3">
                   <div className="flex items-start space-x-3">
                     <div className="min-w-0 flex-1">
-                      <Link
+                      <div
                         to={`view/${customer.id}`}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline text-left cursor-pointer touch-manipulation block w-full"
+                        className="font-medium"
                         title={customer.name || 'Đang cập nhật'}
                       >
                         {startIndex + index + 1} - {truncateText(customer.name, 30)}
-                      </Link>
-                      <div className="text-xs text-gray-500 mt-1">
-                        SĐT: {displayValue(customer.phone)}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Email: {truncateText(customer.email, 30)}
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-[1.4rem] text-gray-800 font-medium">SĐT:</strong>{' '}
+                        {displayValue(customer.phone)}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Tổng đơn hàng: {displayValue(customer.totalOrders)}
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-3 text-gray-800 font-medium">Email:</strong>{' '}
+                        {truncateText(customer.email, 30)}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Tổng chi tiêu:{' '}
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-3 text-gray-800 font-medium">Tổng đơn hàng:</strong>{' '}
+                        {displayValue(customer.totalOrders)}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-[1.65rem] text-gray-800 font-medium">
+                          Tổng chi tiêu:
+                        </strong>{' '}
                         {displayValue(
                           customer.totalSpent
-                            ? customer.totalSpent.toLocaleString('vi-VN') + ' VNĐ'
-                            : null,
+                            ? customer.totalSpent.toLocaleString('vi-VN')
+                            : '0' + ' VNĐ',
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Uy tín: {displayValue(customer.reputation)}
+                      <div className="text-sm text-gray-500 mt-1">
+                        <strong className="mr-[4.5rem] text-gray-800 font-medium">Uy tín:</strong>{' '}
+                        {displayValue(customer.reputation)}
                       </div>
-                      <div className="mt-1">
+                      <div className="mt-3">
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-sm ${
                             customer.status && statusMap[customer.status]?.color
                               ? statusMap[customer.status].color
                               : 'bg-gray-100 text-gray-800'
@@ -417,14 +401,14 @@ const Customers = () => {
                     </div>
                   </div>
                   <div className="flex justify-end space-x-2">
-                    {/* <Link
+                    <Link
                       to={`view/${customer.id}`}
                       className="px-3 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer touch-manipulation"
                     >
                       <User className="w-3 h-3 mr-1" />
                       Xem
-                    </Link> */}
-                    <button
+                    </Link>
+                    {/* <button
                       className={`px-3 py-2 rounded text-xs flex items-center touch-manipulation
                       ${
                         customer.status === 'BLOCK'
@@ -437,7 +421,7 @@ const Customers = () => {
                     >
                       <Lock className="w-3 h-3 mr-1" />
                       Khóa
-                    </button>
+                    </button> */}
                   </div>
                 </div>
               </div>

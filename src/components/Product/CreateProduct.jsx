@@ -137,7 +137,7 @@ const ProductItem = ({
   };
 
   return (
-    <div className="mb-6 border p-6 rounded-sm">
+    <div className="mb-6 border border-gray-300 p-6 rounded-sm">
       <div className="flex justify-between items-center mb-4">
         <span className="text-md font-medium">Mục sản phẩm {itemIndex + 1}</span>
         {productItemsFields.length > 1 && (
@@ -324,7 +324,7 @@ const ProductItem = ({
           )}
         </div>
         {attributes.map((attr, attrIndex) => (
-          <div key={attr.id} className="mb-4 border p-4 rounded-sm">
+          <div key={attr.id} className="mb-4 border border-gray-300 p-4 rounded-sm">
             <div className="flex justify-between items-center mb-2">
               <span>Thuộc tính {attrIndex + 1}</span>
               {itemIndex === 0 && attributes.length > 1 && (
@@ -1262,14 +1262,14 @@ const CreateProduct = () => {
   };
 
   return (
-    <div className="p-3 sm:p-6 bg-gray-50 min-h-screen">
+    <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
       {errorMessage && (
         <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-sm">{errorMessage}</div>
       )}
       <div className="mb-6">
         <button
           onClick={() => window.history.back()}
-          className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-sm hover:bg-gray-300 flex items-center"
+          className="shadow-md px-4 py-2 text-sm bg-rose-50 text-gray-700 rounded-sm hover:bg-rose-100 flex items-center"
           disabled={isLoading}
         >
           <ArrowLeft className="w-4 h-4 mr-2" /> QUẢN LÝ SẢN PHẨM
@@ -1277,7 +1277,7 @@ const CreateProduct = () => {
       </div>
 
       <div className="bg-white rounded-sm shadow-md">
-        <div className="bg-[#00D5BE] text-white p-4 rounded-t-sm">
+        <div className="bg-[var(--color-title)] text-white p-4 rounded-t-sm">
           <h2 className="text-lg font-semibold">THÊM SẢN PHẨM</h2>
         </div>
 
@@ -1629,7 +1629,7 @@ const CreateProduct = () => {
               fetchAttributes={fetchAttributes}
             />
 
-            <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+            <div className="flex justify-end space-x-3 mt-8 pt-6 border-t">
               <button
                 type="button"
                 onClick={() => window.history.back()}

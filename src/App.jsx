@@ -15,8 +15,17 @@ import { routeTitleMap } from './config/navigationConfig';
 import { ToastContainer } from 'react-toastify';
 import { jwtDecode } from 'jwt-decode';
 import OrderDetail from './pages/Order/OrderDetail';
-import GiftManagement from './pages/Gift/Gift';
-import AddGift from './pages/Gift/AddGift';
+import Gift from './pages/Gift/Gift';
+import EditAdminProfile from './pages/Profile/EditAdminProfile';
+import UpdateGift from './pages/Gift/UpdateGift';
+import CustomerDetail from './pages/Customer/CustomerDetail';
+import Poster from './pages/Poster/Poster';
+import CreatePoster from './pages/Poster/CreatePoster';
+import UpdatePoster from './pages/Poster/UpdatePoster';
+import Voucher from './pages/voucher/Voucher';
+import CreateGift from './pages/Gift/CreateGift';
+import CreateVoucher from './pages/voucher/CreateVoucher';
+import UpdateVoucher from './pages/voucher/UpdateVoucher';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -100,7 +109,31 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/products/brand-management"
+                    path="/posters"
+                    element={
+                      <ProtectedRoute>
+                        <Poster />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/posters/add"
+                    element={
+                      <ProtectedRoute>
+                        <CreatePoster />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/posters/edit/:posterId"
+                    element={
+                      <ProtectedRoute>
+                        <UpdatePoster />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/brands"
                     element={
                       <ProtectedRoute>
                         <Brand />
@@ -108,7 +141,7 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/products/brand-management/add"
+                    path="/brands/add"
                     element={
                       <ProtectedRoute>
                         <CreateBrand />
@@ -116,7 +149,7 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/products/brand-management/edit/:brandId"
+                    path="/brands/edit/:brandId"
                     element={
                       <ProtectedRoute>
                         <UpdateBrand />
@@ -124,7 +157,7 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/products/category-management"
+                    path="/categories"
                     element={
                       <ProtectedRoute>
                         <Category />
@@ -132,7 +165,7 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/products/category-management/add"
+                    path="/categories/add"
                     element={
                       <ProtectedRoute>
                         <CreateCategory />
@@ -140,7 +173,7 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/products/category-management/edit/:categoryId"
+                    path="/categories/edit/:categoryId"
                     element={
                       <ProtectedRoute>
                         <UpdateCategory />
@@ -148,7 +181,7 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/products/product-management"
+                    path="/products"
                     element={
                       <ProtectedRoute>
                         <Product />
@@ -156,7 +189,7 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/products/product-management/add"
+                    path="/products/add"
                     element={
                       <ProtectedRoute>
                         <CreateProduct />
@@ -164,7 +197,7 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/products/product-management/edit/:productId"
+                    path="/products/edit/:productId"
                     element={
                       <ProtectedRoute>
                         <UpdateProduct />
@@ -196,6 +229,14 @@ const App = () => {
                     }
                   />
                   <Route
+                    path="/customers/view/:id"
+                    element={
+                      <ProtectedRoute>
+                        <CustomerDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/warehouse"
                     element={
                       <ProtectedRoute>
@@ -207,15 +248,55 @@ const App = () => {
                     path="/gifts"
                     element={
                       <ProtectedRoute>
-                        <GiftManagement />
+                        <Gift />
                       </ProtectedRoute>
                     }
                   />
                   <Route
-                    path="/add-gift"
+                    path="/gifts/add"
                     element={
                       <ProtectedRoute>
-                        <AddGift />
+                        <CreateGift />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/gifts/edit/:giftId"
+                    element={
+                      <ProtectedRoute>
+                        <UpdateGift />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/vouchers"
+                    element={
+                      <ProtectedRoute>
+                        <Voucher />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/vouchers/add"
+                    element={
+                      <ProtectedRoute>
+                        <CreateVoucher />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/vouchers/edit/:voucherId"
+                    element={
+                      <ProtectedRoute>
+                        <UpdateVoucher />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <EditAdminProfile />
                       </ProtectedRoute>
                     }
                   />

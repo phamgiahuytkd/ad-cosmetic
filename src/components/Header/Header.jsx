@@ -14,6 +14,7 @@ import {
   Menu,
 } from 'lucide-react';
 import api from '../../service/api';
+import { getImageUrl } from '../../common/commonFunc';
 
 const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -57,30 +58,30 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  // useEffect(() => {
-  //   const fetchUser = async () => {
-  //     try {
-  //       setIsLoadingUser(true);
-  //       const response = await apis.apiGetCurrent();
-  //       if (response.success) {
-  //         setUser(response.userInfo);
-  //       } else {
-  //         throw new Error('Không thể tải thông tin người dùng');
-  //       }
-  //     } catch (err) {
-  //       setError(err.message || 'Không thể tải thông tin người dùng');
-  //       console.error('Fetch user failed:', err);
-  //       if (err.response?.status === 401) {
-  //         localStorage.removeItem('outfiro/admin');
-  //         navigate('/login');
-  //       }
-  //     } finally {
-  //       setIsLoadingUser(false);
-  //     }
-  //   };
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        setIsLoadingUser(true);
+        const response = await api.get('/user/logged');
+        if (response.data.result) {
+          setUser(response.data.result);
+        } else {
+          throw new Error('Không thể tải thông tin người dùng');
+        }
+      } catch (err) {
+        setError(err.message || 'Không thể tải thông tin người dùng');
+        console.error('Fetch user failed:', err);
+        if (err.response?.status === 401) {
+          localStorage.removeItem('outfiro/admin');
+          navigate('/login');
+        }
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
 
-  //   fetchUser();
-  // }, [navigate]);
+    fetchUser();
+  }, [navigate]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -128,6 +129,10 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
       });
   };
 
+  const handleProfile = async () => {
+    navigate('/profile');
+  };
+
   const markAsRead = (id) => {
     setNotifications((prev) =>
       prev.map((notification) =>
@@ -152,8 +157,6 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
         return <Bell className="w-4 h-4 text-gray-500" />;
     }
   };
-
-  const fullName = user ? `${user.firstName} ${user.lastName}` : 'Khách';
 
   return (
     <header className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3">
@@ -275,13 +278,20 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
               onClick={toggleDropdown}
               aria-label="Toggle user menu"
             >
-              <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 bg-teal-500 rounded-full overflow-hidden flex items-center justify-center">
+                <img
+                  src={getImageUrl(user?.avatar) || '/img/no-avatar.png'}
+                  alt="avatar"
+                  className="w-full h-full object-cover rounded-full"
+                />
               </div>
+
               {isLoadingUser ? (
                 <div className="hidden md:block w-20 h-4 bg-gray-200 rounded animate-pulse" />
               ) : (
-                <span className="hidden md:block text-sm text-gray-700">{fullName}</span>
+                <span className="hidden md:block text-sm text-gray-700">
+                  {user.full_name || 'Chưa có thông tin'}
+                </span>
               )}
               <ChevronDown
                 className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
@@ -303,14 +313,19 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-medium text-gray-800">{fullName}</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {user.full_name || 'Chưa có thông tin'}
+                      </p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </>
                   )}
                 </div>
 
                 <div className="py-1">
-                  <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <button
+                    onClick={handleProfile}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
                     <UserCheck className="w-4 h-4 mr-3" />
                     Thông tin cá nhân
                   </button>

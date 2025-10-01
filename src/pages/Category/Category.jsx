@@ -11,6 +11,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Edit,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../service/api';
@@ -130,20 +131,20 @@ const Category = () => {
   }
 
   return (
-    <div className="p-3 sm:p-6 bg-white min-h-screen">
+    <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
       {/* Header Tabs */}
       <div className="mb-4 sm:mb-6">
         <div className="hidden sm:flex space-x-1 rounded-lg p-1">
           <Link
             to="add"
-            className="px-4 py-2 text-sm bg-blue-500 text-white rounded-sm hover:bg-blue-600 flex items-center transition-colors cursor-pointer"
+            className="shadow-md px-4 py-2 text-sm bg-green-500 text-white rounded-sm hover:bg-green-600 flex items-center transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4 mr-2" />
             THÊM DANH MỤC
           </Link>
           <Link
-            to="/products/product-management"
-            className="px-4 py-2 text-sm bg-orange-500 text-white rounded-sm hover:bg-orange-600 flex items-center transition-colors cursor-pointer"
+            to="/products"
+            className="shadow-md px-4 py-2 text-sm bg-orange-500 text-white rounded-sm hover:bg-orange-600 flex items-center transition-colors cursor-pointer"
           >
             <Package className="w-4 h-4 mr-2" />
             QUẢN LÝ SẢN PHẨM
@@ -151,37 +152,28 @@ const Category = () => {
         </div>
 
         <div className="sm:hidden">
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="w-full px-4 py-3 bg-blue-500 text-white rounded-sm hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer"
-          >
-            {isMobileMenuOpen ? <X className="w-4 h-4 mr-2" /> : <Menu className="w-4 h-4 mr-2" />}
-            MENU
-          </button>
-          {isMobileMenuOpen && (
-            <div className="mt-2 space-y-2 bg-white border border-gray-200 rounded-sm shadow-lg p-2">
-              <Link
-                to="add"
-                className="w-full px-4 py-2 text-sm bg-blue-500 text-white rounded-sm hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                THÊM DANH MỤC
-              </Link>
-              <Link
-                to="/products/product-management"
-                className="w-full px-4 py-2 text-sm bg-orange-500 text-white rounded-sm hover:bg-orange-600 flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <Package className="w-4 h-4 mr-2" />
-                QUẢN LÝ SẢN PHẨM
-              </Link>
-            </div>
-          )}
+          <div className="mt-2 space-y-2 bg-white border border-gray-200 rounded-sm shadow-lg p-2">
+            <Link
+              to="add"
+              className="w-full px-4 py-2 text-sm bg-blue-500 text-white rounded-sm hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              THÊM DANH MỤC
+            </Link>
+            <Link
+              to="/products/product-management"
+              className="w-full px-4 py-2 text-sm bg-orange-500 text-white rounded-sm hover:bg-orange-600 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <Package className="w-4 h-4 mr-2" />
+              QUẢN LÝ SẢN PHẨM
+            </Link>
+          </div>
         </div>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 sm:mb-6">
-        <div className="bg-blue-50 border border-blue-200 rounded-sm p-4">
+        <div className="bg-white shadow-md rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-blue-600">Tổng danh mục</p>
@@ -192,7 +184,7 @@ const Category = () => {
             </div>
           </div>
         </div>
-        <div className="bg-green-50 border border-green-200 rounded-sm p-4">
+        <div className="bg-green-50 shadow-md rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-green-600">Có sản phẩm</p>
@@ -203,7 +195,7 @@ const Category = () => {
             </div>
           </div>
         </div>
-        <div className="bg-red-50 border border-red-200 rounded-sm p-4">
+        <div className="bg-red-50 shadow-md rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-red-600">Không sản phẩm</p>
@@ -217,7 +209,7 @@ const Category = () => {
       </div>
 
       {/* Filter Section */}
-      <div className="bg-white rounded-sm p-3 sm:p-4 mb-4 sm:mb-6 border-gray-100 border">
+      <div className="bg-white rounded-sm p-3 sm:p-4 mb-4 sm:mb-6 shadow-md">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tên danh mục</label>
@@ -251,7 +243,7 @@ const Category = () => {
       {/* Category List */}
       <div className="bg-white rounded-sm shadow-md">
         {/* Header */}
-        <div className="bg-[#00D5BE] text-white p-3 rounded-t-sm flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
+        <div className="bg-[var(--color-title)] text-white p-3 rounded-t-sm flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
           <h2 className="text-base font-semibold">
             QUẢN LÝ DANH MỤC ({filteredCategories.length} mục)
           </h2>
@@ -267,7 +259,9 @@ const Category = () => {
                 <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">
                   Tên danh mục
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Số lượng SP</th>
+                <th className="px-4 py-3 text-center text-sm font-bold text-gray-700">
+                  Số lượng SP
+                </th>
                 <th className="px-6 py-3 text-right text-sm font-bold text-gray-700">Hoạt động</th>
               </tr>
             </thead>
@@ -298,8 +292,16 @@ const Category = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 font-medium">{category.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {category.product_quantity || 0}
+                  <td className="px-4 py-3 text-sm text-center text-gray-900">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        category.product_quantity !== 0
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {category.product_quantity || 0}
+                    </span>
                   </td>
                   <td className="px-4 py-3 items-center justify-end">
                     <div className="flex items-center justify-end">
@@ -307,7 +309,7 @@ const Category = () => {
                         to={`edit/${category.id}`}
                         className="px-6 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer touch-manipulation"
                       >
-                        <FileText className="w-3 h-3 mr-1" />
+                        <Edit className="w-3 h-3 mr-1" />
                         Sửa
                       </Link>
                     </div>
@@ -351,28 +353,26 @@ const Category = () => {
                           <div className="text-sm font-medium text-gray-900 truncate">
                             {startIndex + index + 1} - {category.name}
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Số lượng SP: {category.product_quantity || 0}
-                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Số lượng SP</div>
                           <div className="mt-1">
                             <span
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                category.isActive
+                                category.product_quantity !== 0
                                   ? 'bg-green-100 text-green-800'
                                   : 'bg-red-100 text-red-800'
                               }`}
                             >
-                              {category.isActive ? 'Hoạt động' : 'Không hoạt động'}
+                              {category.product_quantity || 0}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex space-x-2 flex-shrink-0">
+                      <div className="flex justify-end space-x-2 flex-shrink-0">
                         <Link
                           to={`edit/${category.id}`}
-                          className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer"
+                          className="px-3 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center cursor-pointer"
                         >
-                          <FileText className="w-3 h-3 mr-1" />
+                          <Edit className="w-3 h-3 mr-1" />
                           Sửa
                         </Link>
                       </div>

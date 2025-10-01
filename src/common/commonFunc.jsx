@@ -13,7 +13,7 @@ export const getImageUrl = (imageName) => {
     return imageName; // Trả về URL nguyên vẹn nếu đã là URL
   }
   // Nếu không, thêm base URL
-  return `https://icommerce-production.up.railway.app/iCommerce/images/${imageName}`;
+  return `http://localhost:8080/iCommerce/images/${imageName}`;
 };
 
 // hàm chuyển tiền
@@ -289,4 +289,60 @@ export const handleLogoutConfirm = () => {
       window.location.href = '/logout'; // chuyển trang
     }
   });
+};
+
+/////////////////////////
+export const getCroppedImg = async (imageSrc, pixelCrop) => {
+  const image = new Image();
+  image.src = imageSrc;
+  await new Promise((resolve) => (image.onload = resolve));
+  const canvas = document.createElement('canvas');
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height,
+  );
+  return canvas.toDataURL('image/jpeg');
+};
+
+/////////////////// status order
+export const statusMap = {
+  PROCESSING: { display: 'Đang xử lý', color: 'bg-blue-100 text-blue-800' },
+  PENDING: { display: 'Đang chờ thanh toán', color: 'bg-yellow-50 text-yellow-600' },
+  COMPLETED: { display: 'Đã hoàn thành', color: 'bg-green-100 text-green-800' },
+  UNCOMPLETED: { display: 'Chưa hoàn thành', color: 'bg-red-100 text-red-800' },
+};
+
+// Cắt ngắn văn bản để hiển thị
+export const truncateText = (text, maxLength) => {
+  if (!text) return 'Đang cập nhật';
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+};
+
+// Xử lý hiển thị giá trị
+export const displayValue = (value) => {
+  return value ?? 'Đang cập nhật';
+};
+
+export const formatToVietnamTime = (dateString) => {
+  if (!dateString) return '';
+  return new Intl.DateTimeFormat('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(new Date(dateString));
 };

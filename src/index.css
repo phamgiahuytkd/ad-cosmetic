@@ -16,3 +16,13 @@ body {
     margin-bottom: 5rem; /* tương đương mb-28 */
   }
 }
+
+
+:root {
+  --color-bg: #D4F6FF;
+  /* xanh dương */
+  --color-title: #7091E6;
+  /* tím */
+  --color-bt-nav: #687FE5;
+  /* đỏ */
+}

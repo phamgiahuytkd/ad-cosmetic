@@ -171,14 +171,14 @@ const Product = () => {
   }
 
   return (
-    <div className="p-3 sm:p-6 bg-white min-h-screen">
+    <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
       {/* Header Tabs */}
       <div className="mb-4 sm:mb-6">
         {/* Desktop buttons */}
         <div className="hidden sm:flex space-x-1 rounded-lg p-1">
           <Link
             to="add"
-            className="px-4 py-2 text-sm bg-blue-500 text-white rounded-sm hover:bg-blue-600 flex items-center transition-colors cursor-pointer"
+            className="shadow-md px-4 py-2 text-sm bg-green-500 text-white rounded-sm hover:bg-green-600 flex items-center transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4 mr-2" />
             THÊM SẢN PHẨM
@@ -187,31 +187,21 @@ const Product = () => {
 
         {/* Mobile menu button */}
         <div className="sm:hidden">
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="w-full px-4 py-3 bg-blue-500 text-white rounded-sm hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
-          >
-            {isMobileMenuOpen ? <X className="w-4 h-4 mr-2" /> : <Menu className="w-4 h-4 mr-2" />}
-            MENU
-          </button>
-
-          {isMobileMenuOpen && (
-            <div className="mt-2 space-y-2 bg-white border border-gray-200 rounded-sm shadow-lg p-2">
-              <Link
-                to="add"
-                className="w-full px-4 py-2 text-sm bg-blue-500 text-white rounded-sm hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                THÊM SẢN PHẨM
-              </Link>
-            </div>
-          )}
+          <div className="mt-2 space-y-2 bg-white border border-gray-200 rounded-sm shadow-lg p-2">
+            <Link
+              to="add"
+              className="w-full px-4 py-2 text-sm bg-blue-500 text-white rounded-sm hover:bg-blue-600 flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              THÊM SẢN PHẨM
+            </Link>
+          </div>
         </div>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 sm:mb-6">
-        <div className="bg-blue-50 border border-blue-200 rounded-sm p-4">
+        <div className="bg-white shadow-md rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-blue-600">Tổng sản phẩm</p>
@@ -222,7 +212,7 @@ const Product = () => {
             </div>
           </div>
         </div>
-        <div className="bg-green-50 border border-green-200 rounded-sm p-4">
+        <div className="bg-green-50 shadow-md rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-green-600">Còn hàng</p>
@@ -233,7 +223,7 @@ const Product = () => {
             </div>
           </div>
         </div>
-        <div className="bg-red-50 border border-red-200 rounded-sm p-4">
+        <div className="bg-red-50 shadow-md rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-red-600">Hết hàng</p>
@@ -247,7 +237,7 @@ const Product = () => {
       </div>
 
       {/* Filter Section */}
-      <div className="bg-white rounded-sm p-3 sm:p-4 mb-4 sm:mb-6 border-gray-100 border">
+      <div className="bg-white rounded-sm p-3 sm:p-4 mb-4 sm:mb-6 shadow-md">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
@@ -277,7 +267,7 @@ const Product = () => {
       {/* Product List */}
       <div className="bg-white rounded-sm shadow-md">
         {/* Header */}
-        <div className="bg-[#00D5BE] text-white p-3 rounded-t-sm flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
+        <div className="bg-[var(--color-title)] text-white p-3 rounded-t-sm flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
           <h2 className="text-base font-semibold">
             QUẢN LÝ SẢN PHẨM ({filteredProducts.length} mục)
           </h2>
@@ -408,7 +398,7 @@ const Product = () => {
                           </div>
                           <div className="mt-1">
                             <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-sm ${
                                 (product.stock || 0) > 0
                                   ? 'bg-green-100 text-green-800'
                                   : 'bg-red-100 text-red-800'

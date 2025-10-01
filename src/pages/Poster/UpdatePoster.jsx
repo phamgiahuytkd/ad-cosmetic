@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Upload, X } from 'lucide-react';
+import { ArrowLeft, Edit, Upload, X, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import api from '../../service/api';
 import { getImageUrl } from '../../common/commonFunc';
 
-const UpdateCategory = () => {
-  const { categoryId } = useParams();
+const UpdatePoster = () => {
+  const { posterId } = useParams();
   const {
     register,
     handleSubmit,
@@ -18,114 +19,170 @@ const UpdateCategory = () => {
     setValue,
   } = useForm({
     defaultValues: {
-      logo: null,
-      name: '',
-      displayOrder: '',
-      parentId: '',
+      image: null,
+      link: '',
     },
     mode: 'onChange',
   });
 
   const [previewUrl, setPreviewUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingCategory, setLoadingCategory] = useState(true);
+  const [loadingPoster, setLoadingPoster] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!categoryId) {
-        setError('form', { message: 'Category ID is missing' });
-        setLoadingCategory(false);
+      if (!posterId) {
+        setError('form', { message: 'Poster ID is missing' });
+        setLoadingPoster(false);
         return;
       }
-
-      setLoadingCategory(true);
+      setLoadingPoster(true);
       try {
-        const res = await api.get(`/category/${categoryId}`);
-        const category = res.data.result;
-        setValue('name', category.name || '');
-        if (category.image) {
-          setPreviewUrl(category.image); // giữ nguyên tên file từ server
+        const res = await api.get(`/poster/${posterId}`);
+        const poster = res.data.result;
+        setValue('link', poster.link || '');
+        if (poster.image) {
+          setPreviewUrl(poster.image); // Keep the server image URL
         }
       } catch (err) {
+        console.error(err.response?.data?.message || 'Lỗi lấy danh sách áp phích');
         setError('form', {
           message:
             err.response?.data?.message || 'Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.',
         });
       }
-      setLoadingCategory(false);
+      setLoadingPoster(false);
     };
 
     fetchData();
-  }, [categoryId, setValue, setError]);
+  }, [posterId, setValue, setError]);
 
   const handleImageChange = (e) => {
-    clearErrors(['form', 'logo']);
+    clearErrors(['form', 'image']);
     const file = e.target.files[0];
     if (file) {
       const validTypes = ['image/png', 'image/jpeg', 'image/gif'];
       if (!validTypes.includes(file.type)) {
-        setError('logo', { message: 'Chỉ chấp nhận định dạng PNG, JPG, GIF' });
+        setError('image', { message: 'Chỉ chấp nhận định dạng PNG, JPG, GIF' });
         setPreviewUrl('');
-        setValue('logo', null);
+        setValue('image', null);
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
-        setError('logo', { message: 'Hình ảnh không được vượt quá 10MB' });
+        setError('image', { message: 'Hình ảnh không được vượt quá 10MB' });
         setPreviewUrl('');
-        setValue('logo', null);
+        setValue('image', null);
         return;
       }
 
-      setValue('logo', file);
+      setValue('image', file);
+      clearErrors('image');
+
       const reader = new FileReader();
-      reader.onload = (e) => setPreviewUrl(e.target.result);
+      reader.onload = (e) => {
+        setPreviewUrl(e.target.result); // Data URL preview
+      };
       reader.readAsDataURL(file);
     } else {
-      setValue('logo', null);
+      setValue('image', null);
       setPreviewUrl('');
     }
   };
 
   const removeImage = () => {
     clearErrors('form');
-    setValue('logo', null);
+    setValue('image', null);
     setPreviewUrl('');
   };
 
   const onSubmit = async (data) => {
-    if (!data.logo && !previewUrl) {
-      setError('logo', { message: 'Hình ảnh danh mục là bắt buộc' });
+    if (!data.image && !previewUrl) {
+      setError('image', { message: 'Hình ảnh áp phích là bắt buộc' });
       return;
     }
 
     setIsLoading(true);
     const formData = new FormData();
-    formData.append('name', data.name);
-    if (data.logo && typeof data.logo !== 'string') {
-      formData.append('image', data.logo);
+    formData.append('link', data.link);
+    if (data.image && typeof data.image !== 'string') {
+      formData.append('image', data.image);
     }
 
     try {
-      await api.put(`/category/${categoryId}`, formData, {
+      await api.put(`/poster/${posterId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      window.history.back();
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công',
+        text: 'Cập nhật áp phích thành công.',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'OK',
+      }).then(() => {
+        window.history.back();
+      });
     } catch (err) {
-      setError('form', {
-        message:
-          err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật danh mục. Vui lòng thử lại.',
+      console.error('Update error:', err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text:
+          err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật áp phích. Vui lòng thử lại.',
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'OK',
       });
     }
     setIsLoading(false);
   };
 
-  const handleInputChange = () => {
-    clearErrors('form');
+  const handleDelete = async () => {
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: 'Xác nhận xóa',
+      text: 'Bạn có chắc chắn muốn xóa áp phích này? Hành động này không thể hoàn tác.',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy',
+    });
+
+    if (result.isConfirmed) {
+      setIsLoading(true);
+      try {
+        await api.delete(`/poster/${posterId}`);
+        Swal.fire({
+          icon: 'success',
+          title: 'Thành công',
+          text: 'Đã xóa áp phích thành công.',
+          confirmButtonColor: '#3085d6',
+          confirmButtonText: 'OK',
+        }).then(() => {
+          window.history.back();
+        });
+      } catch (err) {
+        console.error('Delete error:', err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: err.response?.data?.message || 'Có lỗi xảy ra khi xóa áp phích. Vui lòng thử lại.',
+          confirmButtonColor: '#d33',
+          confirmButtonText: 'OK',
+        });
+      }
+      setIsLoading(false);
+    }
   };
 
-  if (loadingCategory) {
+  const getPreviewImage = (url) => {
+    if (!url) return '/placeholder.svg';
+    if (url.startsWith('data:')) return url;
+    return getImageUrl(url);
+  };
+
+  if (loadingPoster) {
     return (
       <div className="p-3 sm:p-6 bg-gray-50 min-h-screen">
         <div className="flex items-center justify-center h-64">
@@ -144,13 +201,13 @@ const UpdateCategory = () => {
           className="shadow-md px-4 py-2 text-sm bg-rose-50 text-gray-700 rounded-sm hover:bg-rose-100 flex items-center cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          QUẢN LÝ DANH MỤC
+          QUẢN LÝ ÁP PHÍCH
         </button>
       </div>
 
       <div className="bg-white rounded-sm shadow-md">
         <div className="bg-[var(--color-title)] text-white p-4 rounded-t-sm">
-          <h2 className="text-lg font-semibold">CẬP NHẬT DANH MỤC</h2>
+          <h2 className="text-lg font-semibold">CẬP NHẬT ÁP PHÍCH</h2>
         </div>
 
         <div className="p-6">
@@ -159,23 +216,25 @@ const UpdateCategory = () => {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tên danh mục <span className="text-red-500">*</span>
+                    Link liên kết <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="text"
-                    {...register('name', {
-                      required: 'Tên danh mục là bắt buộc',
-                      minLength: { value: 2, message: 'Tên danh mục phải có ít nhất 2 ký tự' },
+                    type="url"
+                    {...register('link', {
+                      required: 'Link liên kết là bắt buộc',
+                      pattern: {
+                        value: /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/i,
+                        message: 'Link liên kết không hợp lệ',
+                      },
                     })}
-                    placeholder="Tên danh mục"
+                    placeholder="https://example.com"
                     className={`w-full px-3 py-2 border rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
+                      errors.link ? 'border-red-500' : 'border-gray-300'
                     }`}
                     disabled={isLoading}
-                    onChange={handleInputChange}
                   />
-                  {errors.name && (
-                    <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+                  {errors.link && (
+                    <p className="text-red-500 text-sm mt-1">{errors.link.message}</p>
                   )}
                 </div>
               </div>
@@ -183,17 +242,17 @@ const UpdateCategory = () => {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hình ảnh danh mục <span className="text-red-500">*</span>
+                    Hình ảnh áp phích <span className="text-red-500">*</span>
                   </label>
                   <div
                     className={`border-2 border-dashed rounded-sm p-6 text-center hover:border-gray-400 ${
-                      errors.logo ? 'border-red-500' : 'border-gray-300'
+                      errors.image ? 'border-red-500' : 'border-gray-300'
                     }`}
                   >
                     {previewUrl ? (
                       <div className="relative">
                         <img
-                          src={getImageUrl(previewUrl)}
+                          src={getPreviewImage(previewUrl)}
                           alt="Preview"
                           className="mx-auto max-w-full max-h-48 object-contain rounded"
                         />
@@ -227,8 +286,8 @@ const UpdateCategory = () => {
                       </div>
                     )}
                   </div>
-                  {errors.logo && (
-                    <p className="text-red-500 text-sm mt-1">{errors.logo.message}</p>
+                  {errors.image && (
+                    <p className="text-red-500 text-sm mt-1">{errors.image.message}</p>
                   )}
                 </div>
               </div>
@@ -242,14 +301,6 @@ const UpdateCategory = () => {
 
             <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
               <button
-                type="button"
-                onClick={() => window.history.back()}
-                className="px-6 py-2 bg-gray-500 text-white rounded-sm hover:bg-gray-600 cursor-pointer"
-                disabled={isLoading}
-              >
-                Hủy
-              </button>
-              <button
                 type="submit"
                 className="px-6 py-2 bg-pink-500 text-white rounded-sm hover:bg-pink-600 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 disabled={isLoading}
@@ -261,10 +312,27 @@ const UpdateCategory = () => {
                   </>
                 ) : (
                   <>
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Edit className="w-4 h-4 mr-2" />
                     CẬP NHẬT
                   </>
                 )}
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-6 py-2 bg-red-500 text-white rounded-sm hover:bg-red-600 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                disabled={isLoading}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                XÓA
+              </button>
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="px-6 py-2 bg-gray-500 text-white rounded-sm hover:bg-gray-600 cursor-pointer"
+                disabled={isLoading}
+              >
+                Hủy
               </button>
             </div>
           </form>
@@ -274,4 +342,4 @@ const UpdateCategory = () => {
   );
 };
 
-export default UpdateCategory;
+export default UpdatePoster;

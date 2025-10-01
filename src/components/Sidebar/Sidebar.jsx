@@ -68,7 +68,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${isCollapsed ? 'lg:w-16' : 'w-64 lg:w-64'}
         `}
-        style={{ backgroundColor: '#f7f9fd' }}
+        style={{ backgroundColor: '#AEE2FF' }}
       >
         <SidebarContent
           sidebarItems={navigationItems}
