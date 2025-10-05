@@ -12,6 +12,7 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [order, setOrder] = useState(null);
+  const [voucher, setVoucher] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [orderStatuses, setOrderStatuses] = useState([]);
   const [showRejectForm, setShowRejectForm] = useState(false);
@@ -69,8 +70,10 @@ const OrderDetail = () => {
   const fetchOrder = async () => {
     try {
       const response = await api.get(`/order/${id}`);
+      const response2 = await api.get(`/voucher/${id}/order`);
       if (response.data.result) {
         setOrder(response.data.result);
+        setVoucher(response2.data.result);
       } else {
         setError(response?.data?.message || 'Không thể tải chi tiết đơn hàng');
       }
@@ -202,6 +205,19 @@ const OrderDetail = () => {
     fetchData();
   }, [id]);
 
+  const total = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const calculateDiscounted = (selectedVoucher) => {
+    let discount = 0;
+
+    if (selectedVoucher.voucher_type === 'PERCENTAGE') {
+      discount = Math.min((total * selectedVoucher.percent) / 100, selectedVoucher.max_amount);
+    } else {
+      discount = selectedVoucher.max_amount;
+    }
+    return discount;
+  };
+
   const truncateText = (text, maxLength) => {
     if (text?.length <= maxLength) return text || '';
     return text.substring(0, maxLength) + '...';
@@ -294,7 +310,14 @@ const OrderDetail = () => {
           </div>
           <div>
             <p className="text-sm font-bold text-black">Tổng tiền</p>
-            <p className="text-gray-900">{(order.amount || 0).toLocaleString('vi-VN')} VNĐ</p>
+            <p className="text-gray-900">
+              {(order.amount || 0).toLocaleString('vi-VN')} VNĐ
+              {voucher && (
+                <span style={{ color: '#FF6363', margin: '0.5rem' }}>
+                  (-{calculateDiscounted(voucher)?.toLocaleString()}đ {voucher.code})
+                </span>
+              )}
+            </p>
           </div>
           <div>
             <p className="text-sm font-bold text-black">Trạng thái</p>
