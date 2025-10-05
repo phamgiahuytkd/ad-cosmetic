@@ -1,12 +1,12 @@
 // src/services/api.js
-import axios from "axios";
-import {jwtDecode} from "jwt-decode";
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 // Cấu hình cơ bản cho axios
 const api = axios.create({
-  baseURL: "http://localhost:8080/iCommerce", // Địa chỉ của backend
+  baseURL: 'https://icommerce-production.up.railway.app/iCommerce', // Địa chỉ của backend
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
@@ -33,50 +33,56 @@ function isTokenExpiredBefore5Seconds(exp) {
 }
 
 // Interceptor để tự động thêm JWT token vào header
-api.interceptors.request.use(async (config) => {
-  const token = localStorage.getItem("token"); // Lấy token từ localStorage
+api.interceptors.request.use(
+  async (config) => {
+    const token = localStorage.getItem('token'); // Lấy token từ localStorage
 
-  if (token) {
-    const decodedToken = jwtDecode(token);
-    const expiredBefore5Seconds = isTokenExpiredBefore5Seconds(decodedToken.exp);
+    if (token) {
+      const decodedToken = jwtDecode(token);
+      const expiredBefore5Seconds = isTokenExpiredBefore5Seconds(decodedToken.exp);
 
-    if (expiredBefore5Seconds) {
-      if (!isRefreshing) {
-        isRefreshing = true;
+      if (expiredBefore5Seconds) {
+        if (!isRefreshing) {
+          isRefreshing = true;
 
-        try {
-          const response = await axios.post("https://icommerce-production.up.railway.app/iCommerce/auth/refresh", {
-            token: token,
-          });
+          try {
+            const response = await axios.post(
+              'https://icommerce-production.up.railway.app/iCommerce/auth/refresh',
+              {
+                token: token,
+              },
+            );
 
-          const newToken = response.data.result.token;
-          localStorage.setItem("token", newToken);
-          isRefreshing = false;
-          onRefreshed(newToken);
-          config.headers.Authorization = `Bearer ${newToken}`;
-        } catch (error) {
-          isRefreshing = false;
-          localStorage.removeItem("token");
-          window.location.href = "/auth/login"; // Điều hướng đến trang login
-          throw error;
+            const newToken = response.data.result.token;
+            localStorage.setItem('token', newToken);
+            isRefreshing = false;
+            onRefreshed(newToken);
+            config.headers.Authorization = `Bearer ${newToken}`;
+          } catch (error) {
+            isRefreshing = false;
+            localStorage.removeItem('token');
+            window.location.href = '/auth/login'; // Điều hướng đến trang login
+            throw error;
+          }
         }
-      }
 
-      // Chờ cho đến khi token mới được làm mới
-      await new Promise((resolve) => {
-        subscribeTokenRefresh((newToken) => {
-          config.headers.Authorization = `Bearer ${newToken}`;
-          resolve();
+        // Chờ cho đến khi token mới được làm mới
+        await new Promise((resolve) => {
+          subscribeTokenRefresh((newToken) => {
+            config.headers.Authorization = `Bearer ${newToken}`;
+            resolve();
+          });
         });
-      });
-    } else {
-      config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
-  }
 
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
+);
 
 export default api;
