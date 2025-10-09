@@ -41,7 +41,7 @@ const Poster = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 20; // Tăng lên 20 áp phích mỗi trang
 
   const getAllPosters = async () => {
     try {
@@ -141,6 +141,35 @@ const Poster = () => {
   const activePosters = posters.filter((poster) => poster.is_active).length;
   const inactivePosters = posters.filter((poster) => !poster.is_active).length;
 
+  // Hàm tạo danh sách trang hiển thị (tối đa 3 trang liền kề, với ellipsis)
+  const getPageNumbers = () => {
+    const delta = 1; // Hiển thị 1 trang trước và sau (tổng 3 trang xung quanh currentPage)
+    const rangeWithDots = [];
+
+    let left = Math.max(1, currentPage - delta);
+    let right = Math.min(totalPages, currentPage + delta);
+
+    if (left > 1) {
+      rangeWithDots.push(1);
+      if (left > 2) {
+        rangeWithDots.push('...');
+      }
+    }
+
+    for (let i = left; i <= right; i++) {
+      rangeWithDots.push(i);
+    }
+
+    if (right < totalPages) {
+      if (right < totalPages - 1) {
+        rangeWithDots.push('...');
+      }
+      rangeWithDots.push(totalPages);
+    }
+
+    return rangeWithDots;
+  };
+
   if (loading) {
     return (
       <div className="p-6 bg-white min-h-screen">
@@ -207,7 +236,7 @@ const Poster = () => {
       </div>
 
       {/* Filter Section */}
-      {/* <div className="bg-white rounded-sm p-3 sm:p-4 mb-4 sm:mb-6 shadow-md">
+      <div className="bg-white rounded-sm p-3 sm:p-4 mb-4 sm:mb-6 shadow-md">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tiêu đề áp phích</label>
@@ -227,16 +256,12 @@ const Poster = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="">Tất cả ({totalPosters})</option>
-              <option value="active">
-                Đang hoạt động ({posters.filter((p) => p.is_active).length})
-              </option>
-              <option value="inactive">
-                Không hoạt động ({posters.filter((p) => !p.is_active).length})
-              </option>
+              <option value="active">Đang hoạt động ({activePosters})</option>
+              <option value="inactive">Không hoạt động ({inactivePosters})</option>
             </select>
           </div>
         </div>
-      </div> */}
+      </div>
 
       {/* Poster List */}
       <div className="bg-white rounded-sm shadow-md">
@@ -402,18 +427,23 @@ const Poster = () => {
                   Trước
                 </button>
                 <div className="flex items-center space-x-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 text-sm border rounded ${
-                        currentPage === page
-                          ? 'bg-blue-500 text-white border-blue-500'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
+                  {getPageNumbers().map((page, index) => (
+                    <span key={index}>
+                      {page === '...' ? (
+                        <span className="px-3 py-1 text-sm text-gray-700">...</span>
+                      ) : (
+                        <button
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-1 text-sm border rounded ${
+                            currentPage === page
+                              ? 'bg-blue-500 text-white border-blue-500'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )}
+                    </span>
                   ))}
                 </div>
                 <button

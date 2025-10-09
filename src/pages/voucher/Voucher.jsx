@@ -27,7 +27,7 @@ const Voucher = () => {
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 20; // Tăng lên 20 hàng mỗi trang
   const navigate = useNavigate();
   const [editForm, setEditForm] = useState({
     code: '',
@@ -228,6 +228,35 @@ const Voucher = () => {
 
   const formatDate = (date) => {
     return date ? new Date(date).toLocaleString('vi-VN') : '';
+  };
+
+  // Hàm tạo danh sách trang hiển thị (tối đa 3 trang liền kề, với ellipsis)
+  const getPageNumbers = () => {
+    const delta = 1; // Hiển thị 1 trang trước và sau (tổng 3 trang xung quanh currentPage)
+    const rangeWithDots = [];
+
+    let left = Math.max(1, currentPage - delta);
+    let right = Math.min(totalPages, currentPage + delta);
+
+    if (left > 1) {
+      rangeWithDots.push(1);
+      if (left > 2) {
+        rangeWithDots.push('...');
+      }
+    }
+
+    for (let i = left; i <= right; i++) {
+      rangeWithDots.push(i);
+    }
+
+    if (right < totalPages) {
+      if (right < totalPages - 1) {
+        rangeWithDots.push('...');
+      }
+      rangeWithDots.push(totalPages);
+    }
+
+    return rangeWithDots;
   };
 
   if (loading) {
@@ -473,18 +502,23 @@ const Voucher = () => {
                   Trước
                 </button>
                 <div className="flex items-center space-x-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 text-sm border rounded ${
-                        currentPage === page
-                          ? 'bg-blue-500 text-white border-blue-500'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
+                  {getPageNumbers().map((page, index) => (
+                    <span key={index}>
+                      {page === '...' ? (
+                        <span className="px-3 py-1 text-sm text-gray-700">...</span>
+                      ) : (
+                        <button
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-1 text-sm border rounded ${
+                            currentPage === page
+                              ? 'bg-blue-500 text-white border-blue-500'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )}
+                    </span>
                   ))}
                 </div>
                 <button
