@@ -227,7 +227,7 @@ const Voucher = () => {
   };
 
   const formatDate = (date) => {
-    return date ? new Date(date).toLocaleString('vi-VN') : '';
+    return date ? new Date(date)?.toLocaleString('vi-VN') : '';
   };
 
   // Hàm tạo danh sách trang hiển thị (tối đa 3 trang liền kề, với ellipsis)
@@ -381,10 +381,10 @@ const Voucher = () => {
                     {voucher.percent}%
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 text-center">
-                    {voucher.min_order_amount.toLocaleString('vi-VN')} VNĐ
+                    {voucher.min_order_amount?.toLocaleString('vi-VN')} VNĐ
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 text-center">
-                    {voucher.max_amount.toLocaleString('vi-VN')} VNĐ
+                    {voucher.max_amount?.toLocaleString('vi-VN')} VNĐ
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 text-center">
                     {formatToVietnamTime(voucher.start_day)}
@@ -436,11 +436,11 @@ const Voucher = () => {
                         <strong className="mr-3 text-gray-800 font-medium">
                           Đơn hàng tối thiểu:
                         </strong>{' '}
-                        {voucher.min_order_amount.toLocaleString('vi-VN')} VNĐ
+                        {voucher.min_order_amount?.toLocaleString('vi-VN')} VNĐ
                       </div>
                       <div className="text-sm text-gray-500 mt-1">
                         <strong className="mr-3 text-gray-800 font-medium">Giảm tối đa:</strong>{' '}
-                        {voucher.max_amount.toLocaleString('vi-VN')} VNĐ
+                        {voucher.max_amount?.toLocaleString('vi-VN')} VNĐ
                       </div>
                       <div className="text-sm text-gray-500 mt-1">
                         <strong className="mr-3 text-gray-800 font-medium">Ngày bắt đầu:</strong>{' '}
