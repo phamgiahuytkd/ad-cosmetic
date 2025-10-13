@@ -31,6 +31,7 @@ const CustomerDetail = () => {
     total_accumulated_money: null, // VND
     isLocked: false,
     create_day: null,
+    date_of_birth: null,
   });
   const [orderStats, setOrderStats] = useState({
     processing_orders: null,
@@ -45,6 +46,21 @@ const CustomerDetail = () => {
 
   const { id } = useParams();
 
+  const getAge = (dateOfBirth) => {
+    if (!dateOfBirth) return '';
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    // Nếu chưa đến sinh nhật trong năm nay thì trừ đi 1
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age;
+  };
+
   // Hàm fetch dữ liệu (dùng dữ liệu ảo)
   const fetchCustomerData = async () => {
     setLoading(true);
@@ -57,7 +73,8 @@ const CustomerDetail = () => {
       const response4 = await api.get(`/user/${id}/top-user-product`);
       const response5 = await api.get(`/user/${id}/top-user-gift`);
       if (response.data.result && response2.data.result) {
-        const { full_name, email, phone, reputation, avatar, create_day } = response.data.result;
+        const { full_name, email, phone, reputation, avatar, create_day, date_of_birth } =
+          response.data.result;
         const {
           total_accumulated_money,
           total_orders,
@@ -75,6 +92,7 @@ const CustomerDetail = () => {
           total_orders,
           total_accumulated_money,
           create_day,
+          date_of_birth,
         });
         setOrderStats({
           processing_orders,
@@ -193,6 +211,9 @@ const CustomerDetail = () => {
                     </h3>
                     <p className="text-sm text-gray-600">
                       Số điện thoại: {customer.phone || 'Chưa cập nhật'}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Độ tuổi: {getAge(customer?.date_of_birth) || 'Chưa cập nhật'}
                     </p>
                     <p className="text-sm text-gray-600">Email: {customer.email}</p>
                     <p className="text-sm text-gray-600">
