@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowLeft, FileText, CheckCircle, XCircle } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import api from '../../service/api';
 import { getImageUrl } from '../../common/commonFunc';
@@ -17,6 +17,7 @@ const OrderDetail = () => {
   const [orderStatuses, setOrderStatuses] = useState([]);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const navigate = useNavigate();
 
   const statusMap = {
     COMPLETED: {
@@ -151,22 +152,32 @@ const OrderDetail = () => {
         title: isFraud ? 'Cảnh báo gian lận' : 'Xác nhận chấp nhận đơn',
         html: isFraud
           ? `
-      Giao dịch có khả năng gian lận (${(probability * 100).toFixed(2)}%).<br>
-      <a href="/customers/view/${order.user_id}" 
-         target="_blank" 
-         style="color:#2563eb; text-decoration:underline;">
-         🔗 Xem thông tin khách hàng
-      </a><br><br>
-      Bạn có chắc muốn chấp nhận đơn hàng?
-    `
+        Giao dịch có khả năng gian lận (${(probability * 100).toFixed(2)}%).<br>
+        <button id="viewCustomerBtn" 
+                style="margin-top:10px;padding:6px 12px;border:none;background:#3b82f6;color:white;
+                       border-radius:6px;cursor:pointer;font-size:14px;">
+          🔍 Xem khách hàng
+        </button><br><br>
+        Bạn có chắc muốn chấp nhận đơn hàng?
+      `
           : 'Bạn có chắc muốn chấp nhận đơn hàng này?',
-
         icon: isFraud ? 'warning' : 'question',
         showCancelButton: true,
         confirmButtonText: 'Chấp nhận',
         cancelButtonText: 'Hủy',
         confirmButtonColor: '#22c55e',
         cancelButtonColor: '#ef4444',
+
+        // 🧭 Khi popup mở ra, gắn sự kiện click cho nút Xem khách hàng
+        didOpen: () => {
+          const btn = document.getElementById('viewCustomerBtn');
+          if (btn) {
+            btn.addEventListener('click', () => {
+              Swal.close(); // đóng popup
+              navigate(`/customers/view/${order.user_id}`); // ✅ điều hướng nội bộ, không reload
+            });
+          }
+        },
       };
 
       const result = await Swal.fire(swalConfig);
