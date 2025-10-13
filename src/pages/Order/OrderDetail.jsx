@@ -149,10 +149,11 @@ const OrderDetail = () => {
       // Hiển thị Swal để xác nhận
       const isFraud = prediction === 1;
       const swalConfig = {
-        title: isFraud ? 'Cảnh báo gian lận' : 'Xác nhận chấp nhận đơn',
+        title: isFraud ? '⚠️ Cảnh báo gian lận' : 'Xác nhận chấp nhận đơn',
         html: isFraud
           ? `
     <style>
+      /* 🔗 Link xem khách hàng */
       #viewCustomerBtn {
         color: #007bff;
         text-decoration: underline;
@@ -164,8 +165,33 @@ const OrderDetail = () => {
         color: #0056b3;
         text-decoration: underline;
       }
+
+      /* 🔥 Phần hiển thị xác suất gian lận */
+      .fraud-prob {
+        color: #dc2626; /* Đỏ cảnh báo */
+        font-weight: 700;
+        font-size: 1.1em;
+        padding: 2px 6px;
+        border-radius: 6px;
+        background-color: rgba(220, 38, 38, 0.1); /* nền đỏ nhạt */
+        animation: pulse 1.2s infinite;
+      }
+
+      /* 💡 Hiệu ứng nhấp nháy */
+      @keyframes pulse {
+        0%, 100% { 
+          opacity: 1; 
+          transform: scale(1);
+        }
+        50% { 
+          opacity: 0.65; 
+          transform: scale(1.05);
+        }
+      }
     </style>
-    Giao dịch có khả năng gian lận (${(probability * 100).toFixed(2)}%).<br>
+
+    Giao dịch có khả năng gian lận 
+    <span class="fraud-prob">(${(probability * 100).toFixed(2)}%)</span>.<br>
     Bạn có chắc muốn chấp nhận đơn hàng?<br>
     <a id="viewCustomerBtn">(Xem thông tin khách hàng)</a>
   `
@@ -176,12 +202,14 @@ const OrderDetail = () => {
         cancelButtonText: 'Hủy',
         confirmButtonColor: '#22c55e',
         cancelButtonColor: '#ef4444',
+
+        // 🧭 Khi popup mở ra, gắn sự kiện click cho nút Xem khách hàng
         didOpen: () => {
           const btn = document.getElementById('viewCustomerBtn');
           if (btn) {
             btn.addEventListener('click', () => {
-              Swal.close();
-              navigate(`/customers/view/${order.user_id}`);
+              Swal.close(); // Đóng popup
+              navigate(`/customers/view/${order.user_id}`); // ✅ Điều hướng nội bộ
             });
           }
         },
