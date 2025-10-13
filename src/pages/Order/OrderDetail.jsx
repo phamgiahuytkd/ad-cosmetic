@@ -190,8 +190,8 @@ const OrderDetail = () => {
       }
     </style>
 
-    Giao dịch có khả năng gian lận 
-    <span class="fraud-prob">(${(probability * 100).toFixed(2)}%)</span>.<br>
+    Giao dịch có khả năng gian lận!<br>
+    <span class="fraud-prob">${(probability * 100).toFixed(2)}%</span>
     Bạn có chắc muốn chấp nhận đơn hàng?<br>
     <a id="viewCustomerBtn">(Xem thông tin khách hàng)</a>
   `
