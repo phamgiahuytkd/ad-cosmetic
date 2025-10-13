@@ -153,12 +153,11 @@ const OrderDetail = () => {
         html: isFraud
           ? `
         Giao dịch có khả năng gian lận (${(probability * 100).toFixed(2)}%).<br>
-        <button id="viewCustomerBtn" 
-                style="margin-top:10px;padding:6px 12px;border:none;background:#3b82f6;color:white;
-                       border-radius:6px;cursor:pointer;font-size:14px;">
-          🔍 Xem khách hàng
-        </button><br><br>
-        Bạn có chắc muốn chấp nhận đơn hàng?
+        Bạn có chắc muốn chấp nhận đơn hàng?<br>
+        <a id="viewCustomerBtn">
+          (Xem thông tin khách hàng)
+        </a>
+        
       `
           : 'Bạn có chắc muốn chấp nhận đơn hàng này?',
         icon: isFraud ? 'warning' : 'question',
