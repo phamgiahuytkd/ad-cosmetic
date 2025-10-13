@@ -186,9 +186,14 @@ const CustomerDetail = () => {
                     />
                   </div>
                   <div className="text-center">
-                    <h3 className="text-lg font-semibold text-gray-700">{customer.full_name}</h3>
-                    <p className="text-sm text-gray-600">Số điện thoại: {customer.phone}</p>
+                    <h3 className="text-lg font-semibold text-gray-700">
+                      {customer.full_name || 'Chưa ập nhật'}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Số điện thoại: {customer.phone || 'Chưa ập nhật'}
+                    </p>
                     <p className="text-sm text-gray-600">Email: {customer.email}</p>
+                    <p className="text-sm text-gray-600">Ngày tạo TK: {customer.create_day}</p>
                   </div>
                 </div>
               </div>

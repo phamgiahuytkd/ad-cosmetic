@@ -149,9 +149,18 @@ const OrderDetail = () => {
       const isFraud = prediction === 1;
       const swalConfig = {
         title: isFraud ? 'Cảnh báo gian lận' : 'Xác nhận chấp nhận đơn',
-        text: isFraud
-          ? `Giao dịch có khả năng gian lận (${(probability * 100).toFixed(2)}%). Bạn có chắc muốn chấp nhận đơn hàng?`
+        html: isFraud
+          ? `
+      Giao dịch có khả năng gian lận (${(probability * 100).toFixed(2)}%).<br>
+      <a href="/customers/view/${order.user_id}" 
+         target="_blank" 
+         style="color:#2563eb; text-decoration:underline;">
+         🔗 Xem thông tin khách hàng
+      </a><br><br>
+      Bạn có chắc muốn chấp nhận đơn hàng?
+    `
           : 'Bạn có chắc muốn chấp nhận đơn hàng này?',
+
         icon: isFraud ? 'warning' : 'question',
         showCancelButton: true,
         confirmButtonText: 'Chấp nhận',
