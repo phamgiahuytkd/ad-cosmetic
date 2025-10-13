@@ -30,6 +30,7 @@ const CustomerDetail = () => {
     total_orders: null,
     total_accumulated_money: null, // VND
     isLocked: false,
+    create_day: null,
   });
   const [orderStats, setOrderStats] = useState({
     processing_orders: null,
@@ -56,7 +57,7 @@ const CustomerDetail = () => {
       const response4 = await api.get(`/user/${id}/top-user-product`);
       const response5 = await api.get(`/user/${id}/top-user-gift`);
       if (response.data.result && response2.data.result) {
-        const { full_name, email, phone, reputation, avatar } = response.data.result;
+        const { full_name, email, phone, reputation, avatar, create_day } = response.data.result;
         const {
           total_accumulated_money,
           total_orders,
@@ -73,6 +74,7 @@ const CustomerDetail = () => {
           reputation,
           total_orders,
           total_accumulated_money,
+          create_day,
         });
         setOrderStats({
           processing_orders,
