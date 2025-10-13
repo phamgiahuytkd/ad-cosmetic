@@ -152,13 +152,23 @@ const OrderDetail = () => {
         title: isFraud ? 'Cảnh báo gian lận' : 'Xác nhận chấp nhận đơn',
         html: isFraud
           ? `
-        Giao dịch có khả năng gian lận (${(probability * 100).toFixed(2)}%).<br>
-        Bạn có chắc muốn chấp nhận đơn hàng?<br>
-        <a id="viewCustomerBtn">
-          (Xem thông tin khách hàng)
-        </a>
-        
-      `
+    <style>
+      #viewCustomerBtn {
+        color: #007bff;
+        text-decoration: underline;
+        cursor: pointer;
+        font-weight: 500;
+        transition: color 0.2s ease;
+      }
+      #viewCustomerBtn:hover {
+        color: #0056b3;
+        text-decoration: underline;
+      }
+    </style>
+    Giao dịch có khả năng gian lận (${(probability * 100).toFixed(2)}%).<br>
+    Bạn có chắc muốn chấp nhận đơn hàng?<br>
+    <a id="viewCustomerBtn">(Xem thông tin khách hàng)</a>
+  `
           : 'Bạn có chắc muốn chấp nhận đơn hàng này?',
         icon: isFraud ? 'warning' : 'question',
         showCancelButton: true,
@@ -166,14 +176,12 @@ const OrderDetail = () => {
         cancelButtonText: 'Hủy',
         confirmButtonColor: '#22c55e',
         cancelButtonColor: '#ef4444',
-
-        // 🧭 Khi popup mở ra, gắn sự kiện click cho nút Xem khách hàng
         didOpen: () => {
           const btn = document.getElementById('viewCustomerBtn');
           if (btn) {
             btn.addEventListener('click', () => {
-              Swal.close(); // đóng popup
-              navigate(`/customers/view/${order.user_id}`); // ✅ điều hướng nội bộ, không reload
+              Swal.close();
+              navigate(`/customers/view/${order.user_id}`);
             });
           }
         },

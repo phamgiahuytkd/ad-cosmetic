@@ -192,7 +192,7 @@ const CustomerDetail = () => {
                       {customer.full_name || 'Chưa ập nhật'}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Số điện thoại: {customer.phone || 'Chưa ập nhật'}
+                      Số điện thoại: {customer.phone || 'Chưa cập nhật'}
                     </p>
                     <p className="text-sm text-gray-600">Email: {customer.email}</p>
                     <p className="text-sm text-gray-600">
