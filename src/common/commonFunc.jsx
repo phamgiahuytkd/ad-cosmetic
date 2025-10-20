@@ -320,6 +320,7 @@ export const statusMap = {
   PENDING: { display: 'Đang chờ thanh toán', color: 'bg-yellow-50 text-yellow-600' },
   COMPLETED: { display: 'Đã hoàn thành', color: 'bg-green-100 text-green-800' },
   UNCOMPLETED: { display: 'Chưa hoàn thành', color: 'bg-red-100 text-red-800' },
+  PENALTY: { display: 'Đơn gian lận', color: 'bg-red-100 text-red-800' },
 };
 
 // Cắt ngắn văn bản để hiển thị
