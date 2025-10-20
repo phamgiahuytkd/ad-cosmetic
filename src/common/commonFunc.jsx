@@ -326,7 +326,7 @@ export const statusMap = {
   },
   PENALTY: {
     display: 'Đơn gian lận',
-    color: 'bg-red-100 border text-red-800',
+    color: 'bg-red-100 text-red-800',
   },
 };
 
