@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '../../service/api';
 import { getImageUrl } from '../../common/commonFunc';
+import { useNotifications } from '../Context/NotificationContext';
 
 const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -25,38 +26,9 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
   const navigate = useNavigate();
+  const { notifications, loading, fetchNotifications } = useNotifications();
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'order',
-      title: 'Đơn hàng mới',
-      message: '5 đơn hàng mới cần xử lý',
-      count: 5,
-      time: '2 phút trước',
-      isRead: false,
-    },
-    {
-      id: 2,
-      type: 'product',
-      title: 'Sản phẩm hết hàng',
-      message: '3 sản phẩm sắp hết hàng',
-      count: 3,
-      time: '10 phút trước',
-      isRead: false,
-    },
-    {
-      id: 3,
-      type: 'customer',
-      title: 'Khách hàng mới',
-      message: '2 khách hàng mới đăng ký',
-      count: 2,
-      time: '1 giờ trước',
-      isRead: true,
-    },
-  ]);
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => n.id).length;
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -133,25 +105,25 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
     navigate('/profile');
   };
 
-  const markAsRead = (id) => {
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id ? { ...notification, isRead: true } : notification,
-      ),
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })));
+  const handleGoToSeenNotify = async (id) => {
+    api
+      .delete(`/notify/${id}`)
+      .then((response) => {
+        fetchNotifications();
+        navigate(`/orders/view/${id}`);
+      })
+      .catch((error) => {
+        alert(error.response.data.message);
+      });
   };
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'order':
+      case 'ORDER':
         return <ShoppingCart className="w-4 h-4 text-blue-500" />;
-      case 'product':
+      case 'STOCK':
         return <Package className="w-4 h-4 text-orange-500" />;
-      case 'customer':
+      case 'PAID':
         return <Users className="w-4 h-4 text-green-500" />;
       default:
         return <Bell className="w-4 h-4 text-gray-500" />;
@@ -197,14 +169,6 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                   <h3 className="text-sm font-semibold text-gray-800">Thông báo</h3>
                   <div className="flex items-center space-x-2">
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={markAllAsRead}
-                        className="text-xs text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
-                      >
-                        Đánh dấu tất cả đã đọc
-                      </button>
-                    )}
                     <button
                       onClick={() => setIsNotificationOpen(false)}
                       className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
@@ -220,8 +184,8 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                     notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0 ${!notification.isRead ? 'bg-blue-50' : ''}`}
-                        onClick={() => markAsRead(notification.id)}
+                        className={`px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0 ${notification.id ? 'bg-blue-50' : ''}`}
+                        onClick={() => handleGoToSeenNotify(notification.type_id)}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="flex-shrink-0 mt-1">
@@ -230,7 +194,7 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <h4
-                                className={`text-sm font-medium ${!notification.isRead ? 'text-gray-900' : 'text-gray-700'}`}
+                                className={`text-sm font-medium ${notification.id ? 'text-gray-900' : 'text-gray-700'}`}
                               >
                                 {notification.title}
                               </h4>
@@ -241,13 +205,13 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                               )}
                             </div>
                             <p
-                              className={`text-sm mt-1 ${!notification.isRead ? 'text-gray-600' : 'text-gray-500'}`}
+                              className={`text-sm mt-1 ${notification.id ? 'text-gray-600' : 'text-gray-500'}`}
                             >
                               {notification.message}
                             </p>
                             <p className="text-xs text-gray-400 mt-1">{notification.time}</p>
                           </div>
-                          {!notification.isRead && (
+                          {!notification.id && (
                             <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
                           )}
                         </div>
@@ -260,14 +224,6 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                     </div>
                   )}
                 </div>
-
-                {notifications.length > 0 && (
-                  <div className="px-4 py-3 border-t border-gray-100">
-                    <button className="w-full text-center text-sm text-blue-600 hover:text-blue-800 transition-colors cursor-pointer">
-                      Xem tất cả thông báo
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -290,7 +246,7 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                 <div className="hidden md:block w-20 h-4 bg-gray-200 rounded animate-pulse" />
               ) : (
                 <span className="hidden md:block text-sm text-gray-700">
-                  {user.full_name || 'Chưa có thông tin'}
+                  {user?.full_name || 'Chưa có thông tin'}
                 </span>
               )}
               <ChevronDown
@@ -314,9 +270,9 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                   ) : (
                     <>
                       <p className="text-sm font-medium text-gray-800">
-                        {user.full_name || 'Chưa có thông tin'}
+                        {user?.full_name || 'Chưa có thông tin'}
                       </p>
-                      <p className="text-xs text-gray-500">{user.email}</p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
                     </>
                   )}
                 </div>

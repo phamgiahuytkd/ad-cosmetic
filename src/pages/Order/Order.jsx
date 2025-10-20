@@ -7,6 +7,7 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import api from '../../service/api';
 import { displayValue, statusMap, truncateText } from '../../common/commonFunc';
+import { useNotifications } from '../../components/Context/NotificationContext';
 
 // Hàm chuyển đổi không dấu
 const removeDiacritics = (str) => {
@@ -29,6 +30,7 @@ const Orders = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20; // Tăng lên 20 sản phẩm mỗi trang
+  const { notifications, fetchNotifications } = useNotifications();
 
   // Danh sách bốn trạng thái chính và tên tiếng Việt
   const allStatuses = Object.keys(statusMap);
@@ -57,7 +59,7 @@ const Orders = () => {
   // Gọi API khi component mount
   useEffect(() => {
     getAllOrders();
-  }, []);
+  }, [notifications]);
 
   // Thống kê trạng thái
   const statusCounts = useMemo(() => {

@@ -26,6 +26,8 @@ import Voucher from './pages/voucher/Voucher';
 import CreateGift from './pages/Gift/CreateGift';
 import CreateVoucher from './pages/voucher/CreateVoucher';
 import UpdateVoucher from './pages/voucher/UpdateVoucher';
+import { WebSocketProvider } from './components/Context/WebSocketContext';
+import { NotificationProvider, useNotifications } from './components/Context/NotificationContext';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -75,237 +77,239 @@ const App = () => {
 
   return (
     <>
-      <ToastContainer />
-      {isLoginPage ? (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-          </Routes>
-        </div>
-      ) : (
-        <div className="min-h-screen bg-gray-50">
-          <div className="flex h-screen">
-            <Sidebar
-              isMobileMenuOpen={isMobileMenuOpen}
-              setIsMobileMenuOpen={setIsMobileMenuOpen}
-            />
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <Header
+      <WebSocketProvider>
+        <ToastContainer />
+        {isLoginPage ? (
+          <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+            <Routes>
+              <Route path="/login" element={<Login />} />
+            </Routes>
+          </div>
+        ) : (
+          <div className="min-h-screen bg-gray-50">
+            <div className="flex h-screen">
+              <Sidebar
                 isMobileMenuOpen={isMobileMenuOpen}
                 setIsMobileMenuOpen={setIsMobileMenuOpen}
-                currentPageTitle={currentPage.title}
               />
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <Header
+                  isMobileMenuOpen={isMobileMenuOpen}
+                  setIsMobileMenuOpen={setIsMobileMenuOpen}
+                  currentPageTitle={currentPage.title}
+                />
 
-              <main className="flex-1 overflow-y-auto bg-gray-50">
-                <Routes>
-                  <Route path="/" exact={true} element={<Navigate to="/dashboard" />} />
-                  <Route
-                    path="/dashboard"
-                    exact={true}
-                    element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/posters"
-                    element={
-                      <ProtectedRoute>
-                        <Poster />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/posters/add"
-                    element={
-                      <ProtectedRoute>
-                        <CreatePoster />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/posters/edit/:posterId"
-                    element={
-                      <ProtectedRoute>
-                        <UpdatePoster />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/brands"
-                    element={
-                      <ProtectedRoute>
-                        <Brand />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/brands/add"
-                    element={
-                      <ProtectedRoute>
-                        <CreateBrand />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/brands/edit/:brandId"
-                    element={
-                      <ProtectedRoute>
-                        <UpdateBrand />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/categories"
-                    element={
-                      <ProtectedRoute>
-                        <Category />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/categories/add"
-                    element={
-                      <ProtectedRoute>
-                        <CreateCategory />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/categories/edit/:categoryId"
-                    element={
-                      <ProtectedRoute>
-                        <UpdateCategory />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/products"
-                    element={
-                      <ProtectedRoute>
-                        <Product />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/products/add"
-                    element={
-                      <ProtectedRoute>
-                        <CreateProduct />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/products/edit/:productId"
-                    element={
-                      <ProtectedRoute>
-                        <UpdateProduct />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/orders"
-                    element={
-                      <ProtectedRoute>
-                        <Order />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/orders/view/:id"
-                    element={
-                      <ProtectedRoute>
-                        <OrderDetail />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/customers"
-                    element={
-                      <ProtectedRoute>
-                        <Customer />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/customers/view/:id"
-                    element={
-                      <ProtectedRoute>
-                        <CustomerDetail />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/warehouse"
-                    element={
-                      <ProtectedRoute>
-                        <Warehouse />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/gifts"
-                    element={
-                      <ProtectedRoute>
-                        <Gift />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/gifts/add"
-                    element={
-                      <ProtectedRoute>
-                        <CreateGift />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/gifts/edit/:giftId"
-                    element={
-                      <ProtectedRoute>
-                        <UpdateGift />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/vouchers"
-                    element={
-                      <ProtectedRoute>
-                        <Voucher />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/vouchers/add"
-                    element={
-                      <ProtectedRoute>
-                        <CreateVoucher />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/vouchers/edit/:voucherId"
-                    element={
-                      <ProtectedRoute>
-                        <UpdateVoucher />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/profile"
-                    element={
-                      <ProtectedRoute>
-                        <EditAdminProfile />
-                      </ProtectedRoute>
-                    }
-                  />
-                </Routes>
-              </main>
+                <main className="flex-1 overflow-y-auto bg-gray-50">
+                  <Routes>
+                    <Route path="/" exact={true} element={<Navigate to="/dashboard" />} />
+                    <Route
+                      path="/dashboard"
+                      exact={true}
+                      element={
+                        <ProtectedRoute>
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/posters"
+                      element={
+                        <ProtectedRoute>
+                          <Poster />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/posters/add"
+                      element={
+                        <ProtectedRoute>
+                          <CreatePoster />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/posters/edit/:posterId"
+                      element={
+                        <ProtectedRoute>
+                          <UpdatePoster />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/brands"
+                      element={
+                        <ProtectedRoute>
+                          <Brand />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/brands/add"
+                      element={
+                        <ProtectedRoute>
+                          <CreateBrand />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/brands/edit/:brandId"
+                      element={
+                        <ProtectedRoute>
+                          <UpdateBrand />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/categories"
+                      element={
+                        <ProtectedRoute>
+                          <Category />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/categories/add"
+                      element={
+                        <ProtectedRoute>
+                          <CreateCategory />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/categories/edit/:categoryId"
+                      element={
+                        <ProtectedRoute>
+                          <UpdateCategory />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/products"
+                      element={
+                        <ProtectedRoute>
+                          <Product />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/products/add"
+                      element={
+                        <ProtectedRoute>
+                          <CreateProduct />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/products/edit/:productId"
+                      element={
+                        <ProtectedRoute>
+                          <UpdateProduct />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/orders"
+                      element={
+                        <ProtectedRoute>
+                          <Order />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/orders/view/:id"
+                      element={
+                        <ProtectedRoute>
+                          <OrderDetail />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/customers"
+                      element={
+                        <ProtectedRoute>
+                          <Customer />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/customers/view/:id"
+                      element={
+                        <ProtectedRoute>
+                          <CustomerDetail />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/warehouse"
+                      element={
+                        <ProtectedRoute>
+                          <Warehouse />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/gifts"
+                      element={
+                        <ProtectedRoute>
+                          <Gift />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/gifts/add"
+                      element={
+                        <ProtectedRoute>
+                          <CreateGift />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/gifts/edit/:giftId"
+                      element={
+                        <ProtectedRoute>
+                          <UpdateGift />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/vouchers"
+                      element={
+                        <ProtectedRoute>
+                          <Voucher />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/vouchers/add"
+                      element={
+                        <ProtectedRoute>
+                          <CreateVoucher />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/vouchers/edit/:voucherId"
+                      element={
+                        <ProtectedRoute>
+                          <UpdateVoucher />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/profile"
+                      element={
+                        <ProtectedRoute>
+                          <EditAdminProfile />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Routes>
+                </main>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </WebSocketProvider>
     </>
   );
 };
