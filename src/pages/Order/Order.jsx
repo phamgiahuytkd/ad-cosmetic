@@ -200,7 +200,6 @@ const Orders = () => {
               DELIVERING: 'bg-blue-600',
               PENDING: 'bg-yellow-600',
               COMPLETED: 'bg-green-600',
-
               PENALTY: 'bg-red-600',
               UNCOMPLETED: 'bg-red-600',
             }[status] || 'bg-gray-600';
@@ -208,7 +207,7 @@ const Orders = () => {
           return (
             <div
               key={status}
-              className={`shadow-md rounded p-4 ${status === 'PROCESSING' || status === 'UNCOMPLETED' ? 'bg-white border-0' : ''} ${statusMap[status].color}`}
+              className={`shadow-md rounded p-4 ${status === 'PROCESSING' || status === 'UNCOMPLETED' ? 'bg-white' : ''} ${status === 'PROCESSING' || status === 'PENALTY' ? 'border-0' : ''} ${statusMap[status].color}`}
             >
               <div className="flex items-center justify-between">
                 <div>
