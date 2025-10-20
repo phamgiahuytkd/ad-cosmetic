@@ -316,12 +316,12 @@ export const getCroppedImg = async (imageSrc, pixelCrop) => {
 
 /////////////////// status order
 export const statusMap = {
-  PROCESSING: { display: 'Đang xử lý', color: 'bg-blue-500 text-white' },
+  PROCESSING: { display: 'Đang xử lý', color: 'bg-blue-100 text-blue-800' },
   DELIVERING: { display: 'Đang vận chuyển', color: 'bg-blue-100 text-blue-800' },
   PENDING: { display: 'Đang chờ thanh toán', color: 'bg-yellow-50 text-yellow-600' },
   COMPLETED: { display: 'Đã hoàn thành', color: 'bg-green-100 text-green-800' },
   UNCOMPLETED: { display: 'Chưa hoàn thành', color: 'bg-red-100 text-red-800' },
-  PENALTY: { display: 'Đơn gian lận', color: 'bg-red-500 text-white' },
+  PENALTY: { display: 'Đơn gian lận', color: 'bg-red-100 text-red-800' },
 };
 
 // Cắt ngắn văn bản để hiển thị
