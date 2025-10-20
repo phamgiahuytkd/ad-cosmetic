@@ -60,6 +60,10 @@ const OrderDetail = () => {
       display: 'Đã thanh toán',
       color: 'bg-emerald-500 text-white border border-emerald-300',
     },
+    PENALTY: {
+      display: 'Đơn gian lận',
+      color: 'bg-red-500 text-white border border-red-300',
+    },
   };
 
   const getPaymentMethodDisplay = (payment) => {

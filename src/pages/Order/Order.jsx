@@ -200,6 +200,7 @@ const Orders = () => {
               PENDING: 'bg-yellow-600',
               COMPLETED: 'bg-green-600',
               UNCOMPLETED: 'bg-red-600',
+              PENALTY: 'bg-red-600',
             }[status] || 'bg-gray-600';
 
           return (
