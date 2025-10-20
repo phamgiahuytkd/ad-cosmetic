@@ -207,7 +207,7 @@ const Orders = () => {
           return (
             <div
               key={status}
-              className={`shadow-md rounded p-4 ${status === 'PROCESSING' || status === 'UNCOMPLETED' ? 'bg-white' : ''} ${statusMap[status].color}`}
+              className={`shadow-md rounded p-4 ${status === 'PROCESSING' || status === 'UNCOMPLETED' ? 'bg-white border-0' : ''} ${statusMap[status].color}`}
             >
               <div className="flex items-center justify-between">
                 <div>
