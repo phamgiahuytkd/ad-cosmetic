@@ -197,6 +197,7 @@ const Orders = () => {
           const iconBgColor =
             {
               PROCESSING: 'bg-blue-600',
+              DELIVERING: 'bg-blue-600',
               PENDING: 'bg-yellow-600',
               COMPLETED: 'bg-green-600',
               UNCOMPLETED: 'bg-red-600',
@@ -206,7 +207,7 @@ const Orders = () => {
           return (
             <div
               key={status}
-              className={`shadow-md rounded p-4 ${status === 'PROCESSING' ? 'bg-white' : ''} ${statusMap[status].color}`}
+              className={`shadow-md rounded p-4 ${status === 'PROCESSING' || status === 'PENALTY' || status === 'DELIVERING' ? 'bg-white' : ''} ${statusMap[status].color}`}
             >
               <div className="flex items-center justify-between">
                 <div>
