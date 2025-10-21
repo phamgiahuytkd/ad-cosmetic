@@ -28,6 +28,7 @@ import CreateVoucher from './pages/voucher/CreateVoucher';
 import UpdateVoucher from './pages/voucher/UpdateVoucher';
 import { WebSocketProvider } from './components/Context/WebSocketContext';
 import { NotificationProvider, useNotifications } from './components/Context/NotificationContext';
+import { UserProvider } from './components/Context/UserContext';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');

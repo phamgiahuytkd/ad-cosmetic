@@ -1002,6 +1002,7 @@ const UpdateProduct = () => {
 
       const product = productResponse.data.result;
       setVariantResponse(variantResponse.data.result);
+      console.log(variantResponse.data.result);
 
       memoizedReset({
         product: {
@@ -1138,6 +1139,7 @@ const UpdateProduct = () => {
       setIsLoading(true);
       const response = await api.get('/attribute');
       const attributes = response.data.result || [];
+      console.log(attributes);
       if (!Array.isArray(attributes)) {
         throw new Error('Dữ liệu thuộc tính không hợp lệ');
       }
@@ -1146,7 +1148,7 @@ const UpdateProduct = () => {
         label: attr.name,
         values: (attr.values || []).map((val) => ({
           value: val.id,
-          label: val.name,
+          label: val.attribute_id,
         })),
       }));
       setAttributeOptions(formattedAttributes);

@@ -8,6 +8,7 @@ import Modal from 'react-modal';
 import api from '../../service/api';
 import { getCroppedImg, getImageUrl } from '../../common/commonFunc';
 import Cropper from 'react-easy-crop';
+import { useUser } from '../../components/Context/UserContext';
 
 // Bind modal to app element for accessibility
 Modal.setAppElement('#root');
@@ -175,6 +176,7 @@ const EditAdminProfile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const { fetchUser } = useUser();
 
   // Fetch admin profile
   const fetchAdminProfile = useCallback(async () => {
@@ -261,8 +263,6 @@ const EditAdminProfile = () => {
         icon: 'success',
         confirmButtonColor: '#22c55e',
       });
-
-      window.location.reload();
     } catch (error) {
       console.error('Error updating profile:', error);
       setErrorMessage(error.response?.data?.message || 'Lỗi khi cập nhật thông tin');
@@ -274,6 +274,7 @@ const EditAdminProfile = () => {
       });
     } finally {
       setLoading(false);
+      await fetchUser();
     }
   };
 

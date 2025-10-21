@@ -16,44 +16,18 @@ import {
 import api from '../../service/api';
 import { getImageUrl } from '../../common/commonFunc';
 import { useNotifications } from '../Context/NotificationContext';
+import { useUser } from '../Context/UserContext';
 
 const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [error, setError] = useState(null);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
   const navigate = useNavigate();
-  const { notifications, loading, fetchNotifications } = useNotifications();
+  const { notifications, loading: notificationsLoading, fetchNotifications } = useNotifications();
+  const { user, loading, fetchUser, error } = useUser(); // Use loading and error from context
 
   const unreadCount = notifications.filter((n) => n.id).length;
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        setIsLoadingUser(true);
-        const response = await api.get('/user/logged');
-        if (response.data.result) {
-          setUser(response.data.result);
-        } else {
-          throw new Error('Không thể tải thông tin người dùng');
-        }
-      } catch (err) {
-        setError(err.message || 'Không thể tải thông tin người dùng');
-        console.error('Fetch user failed:', err);
-        if (err.response?.status === 401) {
-          localStorage.removeItem('outfiro/admin');
-          navigate('/login');
-        }
-      } finally {
-        setIsLoadingUser(false);
-      }
-    };
-
-    fetchUser();
-  }, [navigate]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -89,32 +63,28 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
 
   const handleLogout = async () => {
     const token = localStorage.getItem('token');
-    api
-      .post('/auth/logout', { token })
-      .then((response) => {
-        localStorage.setItem('token', response.data.result.token); // Lưu token vào localStorage
-        navigate('/login');
-        localStorage.removeItem('token');
-      })
-      .catch((error) => {
-        alert(error.response.data.message);
-      });
+    try {
+      await api.post('/auth/logout', { token });
+      localStorage.removeItem('token'); // Remove token immediately
+      fetchUser(); // Refresh user context
+      navigate('/login');
+    } catch (error) {
+      alert(error.response?.data?.message || 'Đăng xuất thất bại');
+    }
   };
 
-  const handleProfile = async () => {
+  const handleProfile = () => {
     navigate('/profile');
   };
 
   const handleGoToSeenNotify = async (id) => {
-    api
-      .delete(`/notify/${id}`)
-      .then((response) => {
-        fetchNotifications();
-        navigate(`/orders/view/${id}`);
-      })
-      .catch((error) => {
-        alert(error.response.data.message);
-      });
+    try {
+      await api.delete(`/notify/${id}`);
+      fetchNotifications();
+      navigate(`/orders/view/${id}`);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Lỗi khi xử lý thông báo');
+    }
   };
 
   const getNotificationIcon = (type) => {
@@ -180,7 +150,12 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                 </div>
 
                 <div className="max-h-80 overflow-y-auto">
-                  {notifications.length > 0 ? (
+                  {notificationsLoading ? (
+                    <div className="px-4 py-8 text-center text-gray-500">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-500 mx-auto mb-2" />
+                      <p className="text-sm">Đang tải thông báo...</p>
+                    </div>
+                  ) : notifications.length > 0 ? (
                     notifications.map((notification) => (
                       <div
                         key={notification.id}
@@ -242,7 +217,7 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
                 />
               </div>
 
-              {isLoadingUser ? (
+              {loading ? (
                 <div className="hidden md:block w-20 h-4 bg-gray-200 rounded animate-pulse" />
               ) : (
                 <span className="hidden md:block text-sm text-gray-700">
@@ -257,7 +232,7 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                 <div className="px-4 py-2 border-b border-gray-100">
-                  {isLoadingUser ? (
+                  {loading ? (
                     <>
                       <div className="w-24 h-4 bg-gray-200 rounded animate-pulse mb-1" />
                       <div className="w-32 h-3 bg-gray-200 rounded animate-pulse" />

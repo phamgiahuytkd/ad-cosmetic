@@ -817,7 +817,7 @@ const CreateProduct = () => {
         label: attr.name,
         values: (attr.values || []).map((val) => ({
           value: val.id,
-          label: val.name,
+          label: val.attribute_id,
         })),
       }));
       setAttributeOptions(formattedAttributes);
