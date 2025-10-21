@@ -13,6 +13,7 @@ import {
   truncateText,
 } from '../../common/commonFunc'; // Giả sử có hàm này
 import api from '../../service/api';
+import Swal from 'sweetalert2';
 
 // Đăng ký Chart.js components cho Doughnut (dùng làm gauge)
 ChartJS.register(ArcElement, Title, Tooltip, Legend);
@@ -73,7 +74,7 @@ const CustomerDetail = () => {
       const response4 = await api.get(`/user/${id}/top-user-product`);
       const response5 = await api.get(`/user/${id}/top-user-gift`);
       if (response.data.result && response2.data.result) {
-        const { full_name, email, phone, reputation, avatar, create_day, date_of_birth } =
+        const { full_name, email, phone, reputation, avatar, create_day, date_of_birth, stop_day } =
           response.data.result;
         const {
           total_accumulated_money,
@@ -93,6 +94,7 @@ const CustomerDetail = () => {
           total_accumulated_money,
           create_day,
           date_of_birth,
+          isLocked: stop_day ? true : false,
         });
         setOrderStats({
           processing_orders,
@@ -153,10 +155,154 @@ const CustomerDetail = () => {
     },
   };
 
-  // Hàm khóa tài khoản (giả lập)
-  const handleLockAccount = () => {
-    setCustomer((prev) => ({ ...prev, isLocked: !prev.isLocked }));
-    // Thay bằng api thật
+  // Hàm xử lý khóa tài khoản với SweetAlert2
+  const handleLockAccount = async () => {
+    const isLocked = customer?.isLocked;
+    const actionText = isLocked ? 'mở khóa' : 'khóa';
+    const apiEndpoint = isLocked ? `/user/${id}/unblock` : `/user/${id}/block`;
+    const successMessage = isLocked ? 'Tài khoản đã được mở khóa.' : 'Tài khoản đã được khóa.';
+
+    // Biến kiểm tra hold (đặt ở scope bên ngoài Swal để preConfirm có thể kiểm tra)
+    let isCompleted = false;
+
+    const result = await Swal.fire({
+      title: `Xác nhận ${actionText} tài khoản?`,
+      text: `Nhấn và giữ nút "Xác nhận" trong 5 giây để ${actionText}.`,
+      icon: isLocked ? 'info' : 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy',
+      confirmButtonColor: isLocked ? '#22c55e' : '#3b82f6',
+      allowOutsideClick: false,
+      allowEscapeKey: true, // cho phép ESC hủy
+      didOpen: () => {
+        const confirmButton = Swal.getConfirmButton();
+        if (!confirmButton) return;
+
+        // disable confirm theo mặc định (ngăn nhấn 1 cái)
+        confirmButton.disabled = true;
+
+        // tạo progress overlay
+        confirmButton.style.position = 'relative';
+        confirmButton.style.overflow = 'hidden';
+        confirmButton.style.zIndex = '1';
+        confirmButton.style.opacity = '1';
+
+        const progress = document.createElement('div');
+        progress.style.position = 'absolute';
+        progress.style.left = '0';
+        progress.style.top = '0';
+        progress.style.height = '100%';
+        progress.style.width = '0%';
+        progress.style.background = isLocked
+          ? 'linear-gradient(to right, #22c55e, #3b82f6)'
+          : 'linear-gradient(to right, #3b82f6, #ef4444)';
+        progress.style.transition = 'width 0.1s linear';
+        progress.style.zIndex = '0';
+        confirmButton.appendChild(progress);
+
+        let holdTime = 0;
+        let holdInterval = null;
+        isCompleted = false;
+
+        const updateHold = (delta) => {
+          holdTime = Math.min(Math.max(holdTime + delta, 0), 5000);
+          const percent = Math.min((holdTime / 5000) * 100, 100);
+          progress.style.width = `${percent}%`;
+          if (holdTime >= 5000 && !isCompleted) {
+            isCompleted = true;
+            clearInterval(holdInterval);
+            confirmButton.disabled = false;
+            // small visual feedback
+            progress.style.width = '100%';
+            progress.style.background = isLocked ? '#3b82f6' : '#ef4444';
+            Swal.resetValidationMessage();
+            // 0.15s sau để UX mượt, sau đó auto click confirm
+            setTimeout(() => {
+              // auto-confirm khi đã hold đủ
+              Swal.clickConfirm();
+            }, 150);
+          }
+        };
+
+        const startHold = (e) => {
+          // bắt đầu tăng dần (bảo đảm clear trước)
+          if (holdInterval) clearInterval(holdInterval);
+          // immediate small increment to show responsiveness
+          updateHold(100);
+          holdInterval = setInterval(() => updateHold(100), 100);
+        };
+
+        const cancelHold = () => {
+          if (holdInterval) {
+            clearInterval(holdInterval);
+            holdInterval = null;
+          }
+          if (!isCompleted) {
+            // reset progress nếu chưa hoàn thành 5s
+            holdTime = 0;
+            progress.style.width = '0%';
+            Swal.resetValidationMessage();
+          }
+          // nếu đã completed thì do đã auto click confirm nên không cần xử lý
+        };
+
+        // Hỗ trợ pointer, mouse, touch
+        confirmButton.addEventListener('pointerdown', startHold);
+        confirmButton.addEventListener('pointerup', cancelHold);
+        confirmButton.addEventListener('pointerleave', cancelHold);
+
+        confirmButton.addEventListener('mousedown', startHold);
+        confirmButton.addEventListener('mouseup', cancelHold);
+        confirmButton.addEventListener('mouseleave', cancelHold);
+
+        confirmButton.addEventListener('touchstart', startHold, { passive: true });
+        confirmButton.addEventListener('touchend', cancelHold);
+
+        // cleanup khi đóng popup (tránh leak event)
+        Swal.getPopup().addEventListener('swalClose', () => {
+          try {
+            confirmButton.removeEventListener('pointerdown', startHold);
+            confirmButton.removeEventListener('pointerup', cancelHold);
+            confirmButton.removeEventListener('pointerleave', cancelHold);
+            confirmButton.removeEventListener('mousedown', startHold);
+            confirmButton.removeEventListener('mouseup', cancelHold);
+            confirmButton.removeEventListener('mouseleave', cancelHold);
+            confirmButton.removeEventListener('touchstart', startHold);
+            confirmButton.removeEventListener('touchend', cancelHold);
+          } catch (err) {
+            // ignore
+          }
+        });
+      },
+
+      // preConfirm bảo vệ một lớp nữa: nếu vì lý do nào đó confirm được gọi mà isCompleted false thì chặn
+      preConfirm: () => {
+        return new Promise((resolve, reject) => {
+          if (!isCompleted) {
+            Swal.showValidationMessage('Bạn phải giữ nút ít nhất 5 giây để xác nhận.');
+            reject(new Error('hold-not-completed'));
+          } else {
+            resolve(true);
+          }
+        });
+      },
+    });
+
+    if (result.isConfirmed) {
+      try {
+        setLoading(true);
+        await api.put(apiEndpoint);
+        setCustomer((prev) => ({ ...prev, isLocked: !prev.isLocked }));
+        Swal.fire('Thành công!', successMessage, 'success');
+      } catch (error) {
+        console.error('Error toggling account:', error);
+        Swal.fire('Lỗi!', 'Không thể thực hiện hành động. Vui lòng thử lại.', 'error');
+      } finally {
+        setLoading(false);
+        fetchCustomerData();
+      }
+    }
   };
 
   return (
