@@ -83,7 +83,7 @@ const Header = ({ isMobileMenuOpen, setIsMobileMenuOpen, currentPageTitle }) => 
       fetchNotifications();
       navigate(`/orders/view/${id}`);
     } catch (error) {
-      alert(error.response?.data?.message || 'Lỗi khi xử lý thông báo');
+      console.error(error.response?.data?.message || 'Lỗi khi xử lý thông báo');
     }
   };
 

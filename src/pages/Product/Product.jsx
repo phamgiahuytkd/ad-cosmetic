@@ -39,7 +39,7 @@ const Product = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const itemsPerPage = 20; // Tăng lên 20 sản phẩm mỗi trang
+  const itemsPerPage = 20;
 
   const getAllProducts = async () => {
     try {
@@ -64,12 +64,10 @@ const Product = () => {
     getAllProducts();
   }, []);
 
-  // Auto filter when search term or status changes
   useEffect(() => {
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   }, [searchTerm, statusFilter]);
 
-  // Lọc sản phẩm theo tên, thương hiệu, danh mục (không dấu) và trạng thái stock
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const matchesSearch =
@@ -85,8 +83,9 @@ const Product = () => {
 
       const matchesStatus =
         statusFilter === '' ||
-        (statusFilter === 'in_stock' && (product.stock || 0) > 0) ||
-        (statusFilter === 'out_of_stock' && (product.stock || 0) === 0);
+        (statusFilter === 'stopped' && product.stop === true) ||
+        (statusFilter === 'in_stock' && !product.stop && (product.stock || 0) > 0) ||
+        (statusFilter === 'out_of_stock' && !product.stop && (product.stock || 0) === 0);
 
       return matchesSearch && matchesStatus;
     });
@@ -136,14 +135,17 @@ const Product = () => {
     setIsModalOpen(true);
   };
 
-  // Thống kê trạng thái
   const totalProducts = products.length;
-  const inStockProducts = products.filter((product) => (product.stock || 0) > 0).length;
-  const outOfStockProducts = products.filter((product) => (product.stock || 0) === 0).length;
+  const stoppedProducts = products.filter((product) => product.stop === true).length;
+  const inStockProducts = products.filter(
+    (product) => !product.stop && (product.stock || 0) > 0,
+  ).length;
+  const outOfStockProducts = products.filter(
+    (product) => !product.stop && (product.stock || 0) === 0,
+  ).length;
 
-  // Hàm tạo danh sách trang hiển thị (tối đa 3 trang liền kề, với ellipsis)
   const getPageNumbers = () => {
-    const delta = 1; // Hiển thị 1 trang trước và sau (tổng 3 trang xung quanh currentPage)
+    const delta = 1;
     const rangeWithDots = [];
 
     let left = Math.max(1, currentPage - delta);
@@ -203,7 +205,6 @@ const Product = () => {
     <div className="p-3 sm:p-6 bg-[var(--color-bg)] min-h-screen">
       {/* Header Tabs */}
       <div className="mb-4 sm:mb-6">
-        {/* Desktop buttons */}
         <div className="hidden sm:flex space-x-1 rounded-lg p-1">
           <Link
             to="add"
@@ -213,8 +214,6 @@ const Product = () => {
             THÊM SẢN PHẨM
           </Link>
         </div>
-
-        {/* Mobile menu button */}
         <div className="sm:hidden">
           <div className="mt-2 space-y-2 bg-white border border-gray-200 rounded-sm shadow-lg p-2">
             <Link
@@ -229,7 +228,7 @@ const Product = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 sm:mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 sm:mb-6">
         <div className="bg-white shadow-md rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -263,6 +262,17 @@ const Product = () => {
             </div>
           </div>
         </div>
+        <div className="bg-gray-50 shadow-md rounded-sm p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Dừng bán</p>
+              <p className="text-2xl font-bold text-gray-800">{stoppedProducts}</p>
+            </div>
+            <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
+              <Package className="w-4 h-4 text-white" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Filter Section */}
@@ -288,6 +298,7 @@ const Product = () => {
               <option value="">Tất cả ({totalProducts})</option>
               <option value="in_stock">Còn hàng ({inStockProducts})</option>
               <option value="out_of_stock">Hết hàng ({outOfStockProducts})</option>
+              <option value="stopped">Dừng bán ({stoppedProducts})</option>
             </select>
           </div>
         </div>
@@ -295,7 +306,6 @@ const Product = () => {
 
       {/* Product List */}
       <div className="bg-white rounded-sm shadow-md">
-        {/* Header */}
         <div className="bg-[var(--color-title)] text-white p-3 rounded-t-sm flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
           <h2 className="text-base font-semibold">
             QUẢN LÝ SẢN PHẨM ({filteredProducts.length} mục)
@@ -359,12 +369,18 @@ const Product = () => {
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-sm ${
-                        (product.stock || 0) > 0
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                        product.stop
+                          ? 'bg-gray-100 text-gray-800'
+                          : (product.stock || 0) > 0
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {(product.stock || 0) > 0 ? 'Còn hàng' : 'Hết hàng'}
+                      {product.stop
+                        ? 'Dừng bán'
+                        : (product.stock || 0) > 0
+                          ? 'Còn hàng'
+                          : 'Hết hàng'}
                     </span>
                   </td>
                   <td className="px-4 py-3 items-center justify-end">
@@ -428,12 +444,18 @@ const Product = () => {
                           <div className="mt-1">
                             <span
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded-sm ${
-                                (product.stock || 0) > 0
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
+                                product.stop
+                                  ? 'bg-gray-100 text-gray-800'
+                                  : (product.stock || 0) > 0
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
                               }`}
                             >
-                              {(product.stock || 0) > 0 ? 'Còn hàng' : 'Hết hàng'}
+                              {product.stop
+                                ? 'Dừng bán'
+                                : (product.stock || 0) > 0
+                                  ? 'Còn hàng'
+                                  : 'Hết hàng'}
                             </span>
                           </div>
                         </div>

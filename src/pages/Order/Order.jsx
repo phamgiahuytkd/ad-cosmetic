@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { Search, ChevronLeft, ChevronRight, FileText, Menu, X, CircleX } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import api from '../../service/api';
@@ -29,20 +29,30 @@ const Orders = () => {
   const [amountRange, setAmountRange] = useState([0, 10000000]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20; // Tăng lên 20 sản phẩm mỗi trang
+  const itemsPerPage = 20;
   const { notifications, fetchNotifications } = useNotifications();
+  const navigate = useNavigate();
 
-  // Danh sách bốn trạng thái chính và tên tiếng Việt
+  // Tạo Map để lưu type_id của các thông báo có type là ORDER
+  const unreadOrderNotifications = useMemo(() => {
+    const orderNotifications = new Map();
+    notifications
+      .filter((notification) => notification.type === 'ORDER')
+      .forEach((notification) => {
+        orderNotifications.set(notification.type_id, true);
+      });
+    return orderNotifications;
+  }, [notifications]);
+
   const allStatuses = Object.keys(statusMap);
 
-  // Lấy danh sách đơn hàng từ API
   const getAllOrders = async () => {
     try {
       setLoading(true);
       setError('');
       const response = await api.get(`/order/allorder/all`);
       if (response.data.result) {
-        setOrders(response.data.result); // API trả về List<OrderResponse>
+        setOrders(response.data.result);
         const amounts = response.data.result.map((order) => order.amount || 0);
         setAmountRange([Math.min(...amounts), Math.max(...amounts)]);
       } else {
@@ -56,16 +66,14 @@ const Orders = () => {
     }
   };
 
-  // Gọi API khi component mount
   useEffect(() => {
     getAllOrders();
   }, [notifications]);
 
-  // Thống kê trạng thái
   const statusCounts = useMemo(() => {
     const counts = {};
     allStatuses.forEach((status) => {
-      counts[status] = 0; // Khởi tạo tất cả trạng thái với giá trị 0
+      counts[status] = 0;
     });
     orders.forEach((order) => {
       const status = order.status?.toUpperCase();
@@ -76,7 +84,6 @@ const Orders = () => {
     return counts;
   }, [orders]);
 
-  // Lọc đơn hàng theo tên, SĐT, ID, giá trị đơn hàng và trạng thái
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       const matchesSearch =
@@ -93,7 +100,6 @@ const Orders = () => {
     });
   }, [orders, searchTerm, statusFilter, amountRange]);
 
-  // Phân trang dữ liệu
   const paginationData = useMemo(() => {
     const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -104,19 +110,26 @@ const Orders = () => {
 
   const { totalPages, startIndex, endIndex, currentOrders } = paginationData;
 
-  // Xóa tìm kiếm
+  const handleGoToSeenNotify = async (id) => {
+    try {
+      await api.delete(`/notify/${id}`);
+      fetchNotifications();
+      navigate(`/orders/view/${id}`);
+    } catch (error) {
+      console.error(error.response?.data?.message || 'Lỗi khi xử lý thông báo');
+    }
+  };
+
   const clearSearch = () => {
     setSearchTerm('');
     setCurrentPage(1);
   };
 
-  // Xóa bộ lọc trạng thái
   const clearStatusFilter = () => {
     setStatusFilter('');
     setCurrentPage(1);
   };
 
-  // Tìm giá trị min/max của amount để cấu hình thanh kéo
   const amountBounds = useMemo(() => {
     const amounts = orders.map((order) => order.amount || 0);
     return {
@@ -125,15 +138,13 @@ const Orders = () => {
     };
   }, [orders]);
 
-  // Xóa bộ lọc giá trị đơn hàng
   const clearAmountRange = () => {
     setAmountRange([amountBounds.min, amountBounds.max]);
     setCurrentPage(1);
   };
 
-  // Hàm tạo danh sách trang hiển thị (tối đa 3 trang liền kề, với ellipsis)
   const getPageNumbers = () => {
-    const delta = 1; // Hiển thị 1 trang trước và sau (tổng 3 trang xung quanh currentPage)
+    const delta = 1;
     const rangeWithDots = [];
 
     let left = Math.max(1, currentPage - delta);
@@ -335,9 +346,18 @@ const Orders = () => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {currentOrders.map((order, index) => (
-                <tr key={order.id} className="hover:bg-gray-100">
-                  <td className="px-4 py-3 text-sm text-gray-900 text-center">
-                    {startIndex + index + 1}
+                <tr
+                  key={order.id}
+                  className={`hover:bg-gray-100 ${
+                    unreadOrderNotifications.has(order.id) ? 'bg-blue-50/50' : ''
+                  }`}
+                >
+                  <td className={`px-4 py-3 text-sm text-center`}>
+                    <span
+                      className={`${unreadOrderNotifications.has(order.id) ? 'pl-2 pr-2 rounded-full bg-red-500 text-white font-bold' : 'text-gray-900'}`}
+                    >
+                      {startIndex + index + 1}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900 font-medium">
                     {truncateText(order.name, 30)}
@@ -361,7 +381,7 @@ const Orders = () => {
                   </td>
                   <td className="px-6 py-3 text-center">
                     <Link
-                      to={`view/${order.id}`}
+                      onClick={() => handleGoToSeenNotify(order.id)}
                       className="px-3 py-2 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 flex items-center justify-center cursor-pointer touch-manipulation"
                     >
                       <FileText className="w-3 h-3 mr-1" />
@@ -378,7 +398,12 @@ const Orders = () => {
         <div className="lg:hidden">
           <div className="divide-y divide-gray-200">
             {currentOrders.map((order, index) => (
-              <div key={order.id} className="p-4 hover:bg-gray-50">
+              <div
+                key={order.id}
+                className={`p-4 hover:bg-gray-50 ${
+                  unreadOrderNotifications.has(order.id) ? 'bg-blue-50/50' : ''
+                }`}
+              >
                 <div className="flex flex-col space-y-3">
                   <div className="flex items-start space-x-3">
                     <div className="min-w-0 flex-1">
@@ -388,6 +413,9 @@ const Orders = () => {
                         title={order.name || 'Đang cập nhật'}
                       >
                         {startIndex + index + 1} - {truncateText(order.name, 30)}
+                        {unreadOrderNotifications.has(order.id) && (
+                          <span className="inline-block w-2 h-2 bg-red-500 rounded-full ml-2" />
+                        )}
                       </div>
                       <div className="text-sm text-gray-500 mt-1">
                         <strong className="mr-[2.75rem] text-gray-800 font-medium">ID:</strong>{' '}
