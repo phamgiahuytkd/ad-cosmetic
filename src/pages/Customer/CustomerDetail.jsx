@@ -427,7 +427,7 @@ const CustomerDetail = () => {
               </div>
               <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-[#f59e0b]">
                 <h3 className="text-sm font-medium text-gray-700">Đơn gian lận</h3>
-                <p className="text-2xl font-bold text-[#f59e0b]">{orderStats.failed_orders}</p>
+                <p className="text-2xl font-bold text-[#f59e0b]">{orderStats.fraud_orders}</p>
               </div>
             </div>
 
